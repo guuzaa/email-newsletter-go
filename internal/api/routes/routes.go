@@ -2,11 +2,14 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/guuzaa/email-newsletter/internal/logger"
 	"gorm.io/gorm"
 )
 
 func SetupRouter(db *gorm.DB) *gin.Engine {
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(logger.UseLogger())
 	r.GET("/health_check", healthCheck)
 
 	subscriptionHandler := NewSubscriptionHandler(db)
