@@ -1,4 +1,4 @@
-package logger
+package middleware
 
 import (
 	"io"
@@ -23,13 +23,18 @@ func UseLogger() gin.HandlerFunc {
 		logger := Logger()
 		t := time.Now()
 		c.Next()
+		requestID := c.Value("requestID")
+		if requestID == nil {
+			requestID = "unknown"
+		}
 		logger.Trace().
 			Str("method", c.Request.Method).
 			Str("path", c.Request.URL.Path).
 			Str("ip", c.ClientIP()).
-			Str("user_agent", c.Request.UserAgent()).
+			Str("userAgent", c.Request.UserAgent()).
 			Str("latency", time.Since(t).String()).
-			Msg("request")
+			Str("statusCode", strconv.Itoa(c.Writer.Status())).
+			Msgf("requestID: %s, request", requestID)
 	}
 }
 
