@@ -20,35 +20,34 @@ func NewSubscriptionHandler(db *gorm.DB) *SubscriptionHandler {
 }
 
 func (h *SubscriptionHandler) subscribe(c *gin.Context) {
-	r := middleware.Logger()
-	requestID := c.Value("requestID")
+	log := middleware.GetContextLogger(c)
 	var data models.Subscription
 	if err := c.ShouldBind(&data); err != nil {
-		r.Trace().Err(err).Msgf("requestID: %s, failed to bind request body", requestID)
+		log.Trace().Err(err).Msg("failed to bind request body")
 		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	switch {
 	case len(data.Name) == 0 && len(data.Email) == 0:
-		r.Trace().Msgf("requestID: %s, missing both name and email", requestID)
+		log.Trace().Msg("missing both name and email")
 		c.String(http.StatusBadRequest, "missing both name and email")
 	case len(data.Name) == 0:
-		r.Trace().Msgf("requestID: %s, missing the name", requestID)
+		log.Trace().Msg("missing the name")
 		c.String(http.StatusBadRequest, "missing the name")
 	case len(data.Email) == 0:
-		r.Trace().Msgf("requestID: %s, missing the email", requestID)
+		log.Trace().Msg("missing the email")
 		c.String(http.StatusBadRequest, "missing the email")
 	default:
-		r.Trace().Msgf("requestID: %s, creating subscription", requestID)
+		log.Trace().Msg("creating subscription")
 		data.ID = uuid.NewString()
 		data.SubscribedAt = time.Now()
 		if err := h.db.Create(&data).Error; err != nil {
-			r.Warn().Err(err).Msgf("requestID: %s, failed to create subscription in database", requestID)
+			log.Warn().Err(err).Msg("failed to create subscription in database")
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
-		r.Trace().Msgf("requestID: %s, Adding '%s' '%s' as a new subscriber", requestID, data.Name, data.Email)
+		log.Trace().Str("name", data.Name).Str("email", data.Email).Msg("Added new subscriber")
 		c.String(http.StatusOK, "")
 	}
 }

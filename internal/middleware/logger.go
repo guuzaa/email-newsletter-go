@@ -34,7 +34,7 @@ func UseLogger() gin.HandlerFunc {
 			Str("userAgent", c.Request.UserAgent()).
 			Str("latency", time.Since(t).String()).
 			Str("statusCode", strconv.Itoa(c.Writer.Status())).
-			Msgf("ID: %s, request", requestID)
+			Msgf("ID= %s", requestID)
 	}
 }
 
@@ -72,4 +72,14 @@ func Logger() zerolog.Logger {
 			Logger()
 	})
 	return log
+}
+
+// GetContextLogger returns a logger with request ID from context
+func GetContextLogger(c *gin.Context) zerolog.Logger {
+	logger := Logger()
+	requestID, exists := c.Get("requestID")
+	if exists {
+		logger = logger.With().Interface("ID", requestID).Logger()
+	}
+	return logger
 }
