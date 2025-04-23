@@ -3,10 +3,8 @@ package integration
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/guuzaa/email-newsletter/internal"
-	"github.com/guuzaa/email-newsletter/internal/api/routes"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -47,10 +45,4 @@ func SpawnApp() TestApp {
 	}
 	app.DBPool, _ = internal.SetupDB(&settings)
 	return app
-}
-
-func setupTestRouter() *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	app := SpawnApp()
-	return routes.SetupRouter(app.DBPool)
 }

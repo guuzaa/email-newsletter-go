@@ -34,7 +34,7 @@ func UseLogger() gin.HandlerFunc {
 			Str("userAgent", c.Request.UserAgent()).
 			Str("latency", time.Since(t).String()).
 			Str("statusCode", strconv.Itoa(c.Writer.Status())).
-			Msgf("requestID: %s, request", requestID)
+			Msgf("ID: %s, request", requestID)
 	}
 }
 
@@ -44,7 +44,7 @@ func Logger() zerolog.Logger {
 		zerolog.TimeFieldFormat = time.RFC3339Nano
 		logLevel, err := strconv.Atoi(os.Getenv("LOG_LEVEL"))
 		if err != nil {
-			logLevel = int(zerolog.TraceLevel) // default to INFO
+			logLevel = int(zerolog.TraceLevel) // default to TRACE
 		}
 
 		var output io.Writer = zerolog.ConsoleWriter{
@@ -67,8 +67,8 @@ func Logger() zerolog.Logger {
 			Level(zerolog.Level(logLevel)).
 			With().
 			Timestamp().
-			Str("git_revision", gitRevision).
-			Str("go_version", buildInfo.GoVersion).
+			Str("gitRevision", gitRevision).
+			Str("goVersion", buildInfo.GoVersion).
 			Logger()
 	})
 	return log
