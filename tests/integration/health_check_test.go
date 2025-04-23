@@ -6,13 +6,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/guuzaa/email-newsletter/internal"
+	"github.com/guuzaa/email-newsletter/internal/api/routes"
 	"github.com/guuzaa/email-newsletter/internal/models"
 
 	"github.com/stretchr/testify/assert"
 )
 
-var r = setupTestRouter()
+var (
+	app = SpawnApp()
+	r   = routes.SetupRouter(app.DBPool)
+)
 
 func TestHealthCheck(t *testing.T) {
 	w := httptest.NewRecorder()
@@ -28,17 +31,12 @@ func TestSubscribeReturnsA200forValidFormData(t *testing.T) {
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/subscriptions", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	settings, err := internal.Configuration("../../configuration.yaml")
-	assert.Nil(t, err)
 
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	db, err := internal.SetupDB(&settings)
-	assert.Nil(t, err)
-
 	var subscription models.Subscription
-	db.First(&subscription)
+	app.DBPool.First(&subscription)
 	assert.Equal(t, "le guin", subscription.Name)
 	assert.Equal(t, "ursula_le_guin@gmail.com", subscription.Email)
 }

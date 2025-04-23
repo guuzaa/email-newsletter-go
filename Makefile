@@ -1,6 +1,6 @@
 BINARY=email-newsletter
 
-.PHONY: fmt init_db run test build clean
+.PHONY: fmt init_db run test build clean tidy
 
 all: test
 
@@ -21,3 +21,6 @@ build: fmt
 
 clean:
 	rm -rf target
+
+tidy:
+	go mod tidy
