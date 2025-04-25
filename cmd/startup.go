@@ -1,4 +1,4 @@
-package internal
+package main
 
 import (
 	"context"
@@ -8,34 +8,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/guuzaa/email-newsletter/internal"
 	"github.com/guuzaa/email-newsletter/internal/api/routes"
-	"github.com/guuzaa/email-newsletter/internal/middleware"
-	"github.com/guuzaa/email-newsletter/internal/models"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"github.com/guuzaa/email-newsletter/internal/database"
 )
 
-var logger = middleware.Logger()
+var logger = internal.Logger()
 
-func SetupDB(settings *Settings) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.New(postgres.Config{
-		DSN:                  settings.PostgresSQLDSN(), // data source name, refer https://github.com/jackc/pgx
-		PreferSimpleProtocol: true,                      // disables implicit prepared statement usage. By default pgx automatically uses the extended protocol
-	}), &gorm.Config{}) // TODO: use zerolog as logger
-
-	db.AutoMigrate(&models.Subscription{})
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, err
-	}
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetConnMaxIdleTime(100)
-	sqlDB.SetConnMaxLifetime(30 * time.Minute)
-	return db, err
-}
-
-func Run(config *Settings) {
-	db, err := SetupDB(config)
+func Run(config *internal.Settings) {
+	db, err := database.SetupDB(config)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect database")
 	}

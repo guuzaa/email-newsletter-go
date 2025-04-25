@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/guuzaa/email-newsletter/internal"
+	"github.com/guuzaa/email-newsletter/internal/database"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -46,6 +47,6 @@ func SpawnApp() TestApp {
 	if result := db.Exec(createQuery); result.Error != nil {
 		panic(result.Error)
 	}
-	app.DBPool, _ = internal.SetupDB(&settings)
+	app.DBPool, _ = database.SetupDB(&settings)
 	return app
 }

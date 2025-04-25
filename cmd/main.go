@@ -9,5 +9,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	internal.Run(&config)
+	Run(&config)
 }

@@ -21,4 +21,44 @@ func TestConfiguration(t *testing.T) {
 	assert.Equal(t, "127.0.0.2", settings.Application.Host)
 	assert.Equal(t, uint16(8000), settings.Application.Port)
 	assert.False(t, settings.Database.RequireSSL)
+	t.Cleanup(func() {
+		os.Unsetenv("APP_ENVIRONMENT")
+		os.Unsetenv("APP_HOST")
+	})
+}
+
+func TestConfigurationWithMissingFile(t *testing.T) {
+	os.Setenv("APP_ENVIRONMENT", "local")
+	os.Setenv("APP_HOST", "127.0.0.2")
+	os.Setenv("APP_PORT", "9000")
+	os.Setenv("DB_USERNAME", "test")
+	os.Setenv("DB_PASSWORD", "test")
+	os.Setenv("DB_PORT", "54327")
+	os.Setenv("DB_HOST", "127.0.0.2")
+	os.Setenv("DB_DATABASE_NAME", "newsletter")
+	os.Setenv("DB_REQUIRE_SSL", "false")
+	settings, err := internal.Configuration("404notfound404")
+	assert.Nil(t, err, "Failed to load configuration")
+	assert.Equal(t, "test", settings.Database.Username)
+	assert.Equal(t, "test", settings.Database.Password)
+	assert.Equal(t, uint16(54327), settings.Database.Port)
+	assert.Equal(t, "127.0.0.2", settings.Database.Host)
+	assert.Equal(t, "newsletter", settings.Database.DatabaseName)
+	assert.False(t, settings.Database.RequireSSL)
+	t.Cleanup(func() {
+		os.Unsetenv("APP_ENVIRONMENT")
+		os.Unsetenv("APP_HOST")
+		os.Unsetenv("APP_PORT")
+		os.Unsetenv("DB_USERNAME")
+		os.Unsetenv("DB_PASSWORD")
+		os.Unsetenv("DB_PORT")
+		os.Unsetenv("DB_HOST")
+		os.Unsetenv("DB_DATABASE_NAME")
+		os.Unsetenv("DB_REQUIRE_SSL")
+	})
+}
+
+func TestConfigurationWithMissingEnvironmentVariables(t *testing.T) {
+	_, err := internal.Configuration("404notfound404")
+	assert.NotNil(t, err, "Failed to load configuration")
 }

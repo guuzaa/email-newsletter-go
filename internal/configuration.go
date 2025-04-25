@@ -36,6 +36,13 @@ func (setting Settings) PostgresSQLDSN() string {
 	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s", setting.Database.Host, setting.Database.Username, setting.Database.Password, setting.Database.DatabaseName, setting.Database.Port, sslMode)
 }
 
+func (setting *Settings) Valid() bool {
+	return setting.Application.Host != "" && setting.Application.Port != 0 &&
+		setting.Database.Host != "" && setting.Database.Port != 0 &&
+		setting.Database.Username != "" && setting.Database.Password != "" &&
+		setting.Database.DatabaseName != ""
+}
+
 func (setting Settings) Address() string {
 	return fmt.Sprintf("%s:%d", setting.Application.Host, setting.Application.Port)
 }
@@ -76,35 +83,32 @@ func mergeSettings(base, overlay Settings) Settings {
 
 func Configuration(path string) (Settings, error) {
 	var settings Settings
+	logger := Logger()
 
 	baseFilePath := filepath.Join(path, "base.yaml")
 	data, err := os.ReadFile(baseFilePath)
-	if err != nil {
-		return settings, fmt.Errorf("failed to read base config file: %w", err)
-	}
-	if err = yaml.Unmarshal(data, &settings); err != nil {
-		return settings, fmt.Errorf("failed to parse base config: %w", err)
+	if err == nil {
+		yaml.Unmarshal(data, &settings)
 	}
 
 	environment := ParseEnvironment(os.Getenv("APP_ENVIRONMENT"))
 	envFilePath := filepath.Join(path, fmt.Sprintf("%s.yaml", environment.String()))
 	data, err = os.ReadFile(envFilePath)
-	if err != nil {
-		return settings, fmt.Errorf("failed to read %s config file: %w", environment.String(), err)
-	}
-
 	var envSettings Settings
-	if err = yaml.Unmarshal(data, &envSettings); err != nil {
-		return settings, fmt.Errorf("failed to parse %s config: %w", environment.String(), err)
+	if err == nil {
+		yaml.Unmarshal(data, &envSettings)
 	}
-
 	settings = mergeSettings(settings, envSettings)
 
 	var envVarSettings Settings
 	if err := env.Parse(&envVarSettings); err != nil {
-		return settings, fmt.Errorf("failed to parse environment variables: %w", err)
+		logger.Debug().Err(err).Msg("failed to parse environment variables")
 	}
 
 	settings = mergeSettings(settings, envVarSettings)
+	if !settings.Valid() {
+		logger.Error().Msg("missing required settings")
+		return settings, fmt.Errorf("missing required settings")
+	}
 	return settings, nil
 }
