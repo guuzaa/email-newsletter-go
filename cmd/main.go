@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	config, err := internal.Configuration("configuration.yaml")
+	config, err := internal.Configuration("configuration")
 	if err != nil {
 		panic(err)
 	}
