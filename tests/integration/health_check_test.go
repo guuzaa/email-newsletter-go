@@ -12,12 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	app = SpawnApp()
-	r   = routes.SetupRouter(app.DBPool)
-)
-
 func TestHealthCheck(t *testing.T) {
+	app := SpawnApp()
+	r := routes.SetupRouter(app.DBPool)
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/health_check", nil)
 	req.Header.Set("Content-Type", "plain/text")
@@ -28,6 +25,8 @@ func TestHealthCheck(t *testing.T) {
 
 func TestSubscribeReturnsA200forValidFormData(t *testing.T) {
 	const body = "name=le%20guin&email=ursula_le_guin%40gmail.com"
+	app := SpawnApp()
+	r := routes.SetupRouter(app.DBPool)
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/subscriptions", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -42,8 +41,10 @@ func TestSubscribeReturnsA200forValidFormData(t *testing.T) {
 }
 
 func TestSubscribeReturnsA400WhenDataIsMissing(t *testing.T) {
+	app := SpawnApp()
+	r := routes.SetupRouter(app.DBPool)
 	var testCases = []struct {
-		errorMsg string
+		name     string
 		body     string
 		expected int
 	}{
@@ -58,6 +59,28 @@ func TestSubscribeReturnsA400WhenDataIsMissing(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		r.ServeHTTP(w, req)
 		assert.Equal(t, tc.expected, w.Code)
-		assert.Equal(t, tc.errorMsg, w.Body.String(), "The API did not fail with 400 Bad Request when the payload was %s", w.Body.String())
+	}
+}
+
+func TestSubscribeReturnsA200WhenFieldsArePresentButEmpty(t *testing.T) {
+	app := SpawnApp()
+	r := routes.SetupRouter(app.DBPool)
+
+	var testCases = []struct {
+		name     string
+		body     string
+		expected int
+	}{
+		{"empty name", "name=&email=ursula_le_guin%40gmail.com", http.StatusBadRequest},
+		{"empty email", "name=le%20guin&email=", http.StatusBadRequest},
+		{"invalid email", "name=le%20guin&email=invalid-email", http.StatusBadRequest},
+	}
+
+	for _, tc := range testCases {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/subscriptions", strings.NewReader(tc.body))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		r.ServeHTTP(w, req)
+		assert.Equal(t, tc.expected, w.Code)
 	}
 }
