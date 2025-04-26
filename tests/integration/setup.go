@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/guuzaa/email-newsletter/internal"
+	"github.com/guuzaa/email-newsletter/internal/database"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -16,14 +17,17 @@ type TestApp struct {
 
 func SpawnApp() TestApp {
 	settings := internal.Settings{
-		DatabaseSettings: internal.DatabaseSettings{
+		Database: internal.DatabaseSettings{
 			Host:         "localhost",
 			Port:         5432,
 			DatabaseName: "postgres",
 			Username:     "postgres",
 			Password:     "password",
 		},
-		ApplicationPort: 8080,
+		Application: internal.ApplicationSettings{
+			Host: "localhost",
+			Port: 8080,
+		},
 	}
 	app := TestApp{
 		Address: settings.Address(),
@@ -38,11 +42,11 @@ func SpawnApp() TestApp {
 		panic(err)
 	}
 
-	settings.DatabaseName = uuid.NewString()
-	createQuery := fmt.Sprintf(`CREATE DATABASE "%s"`, settings.DatabaseName)
+	settings.Database.DatabaseName = uuid.NewString()
+	createQuery := fmt.Sprintf(`CREATE DATABASE "%s"`, settings.Database.DatabaseName)
 	if result := db.Exec(createQuery); result.Error != nil {
 		panic(result.Error)
 	}
-	app.DBPool, _ = internal.SetupDB(&settings)
+	app.DBPool, _ = database.SetupDB(&settings)
 	return app
 }

@@ -11,12 +11,12 @@ if ! [ -x "$(command -v sqlx)" ]; then
 fi
 
 # Check if a custom parameter has been set, otherwise use default values
-DB_PORT=${POSTGRES_PORT:=5432}
+DB_PORT=${APP_DB_PORT:=5432}
 SUPERUSER=${SUPERUSER:=postgres}
 SUPERUSER_PWD=${SUPERUSER_PWD:=password}
 
-APP_USER=${APP_USER:=app}
-APP_USER_PWD=${APP_USER_PWD:=secret}
+APP_USER=${APP_DB_USERNAME:=app}
+APP_USER_PWD=${APP_DB_PASSWORD:=secret}
 APP_DB_NAME=${APP_DB_NAME:=newsletter}
 
 if [[ -z "${SKIP_DOCKER}" ]]
