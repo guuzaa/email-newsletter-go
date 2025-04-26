@@ -1,0 +1,78 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main ]
+
+env:
+  SQLX_VERSION: 0.8.0
+  SQLX_FEATURES: "rustls,postgres"
+  APP_DB_USERNAME: app
+  APP_DB_PASSWORD: secret
+  APP_DB_NAME: newsletter
+
+jobs:
+ test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: newsletter
+        ports:
+          - 5432:5432
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+         ~/.cargo/registry
+         ~/.cargo/bin/cargo-sqlx
+         ~/.cargo/bin/sqlx
+         ~/.cache/go-build
+
+    - name: Install sqlx-cli
+      run: |
+        if ! command -v sqlx &> /dev/null
+        then
+          cargo install sqlx-cli --version ${SQLX_VERSION} --features ${SQLX_FEATURES} --no-default-features --locked
+        else
+          echo "sqlx-cli ($(sqlx --version)) is already installed, skipping installation"
+        fi
+
+    - name: Create app user in Postgres
+      run: |
+          sudo apt-get install postgresql-client
+  
+          CREATE_QUERY="CREATE USER ${APP_DB_USERNAME} WITH PASSWORD '${APP_DB_PASSWORD}';"
+          PGPASSWORD="password" psql -U "postgres" -h "localhost" -c "${CREATE_QUERY}"
+  
+          # Grant create db privileges to the app user
+          GRANT_QUERY="ALTER USER ${APP_DB_USERNAME} CREATEDB;"
+          PGPASSWORD="password" psql -U "postgres" -h "localhost" -c "${GRANT_QUERY}"
+  
+    - name: Migrate database
+      run: |
+          chmod +x ./scripts/init_db.sh
+          SKIP_DOCKER=true ./scripts/init_db.sh
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+        cache-dependency-path: ./go.sum
+
+    - name: Test
+      run: |
+        go test ./...

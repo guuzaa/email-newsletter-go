@@ -20,12 +20,12 @@ type ApplicationSettings struct {
 }
 
 type DatabaseSettings struct {
-	Username     string `yaml:"username" env:"DB_USERNAME"`
-	Password     string `yaml:"password" env:"DB_PASSWORD"`
-	Port         uint16 `yaml:"port" env:"DB_PORT"`
-	Host         string `yaml:"host" env:"DB_HOST"`
-	DatabaseName string `yaml:"database_name" env:"DB_DATABASE_NAME"`
-	RequireSSL   bool   `yaml:"require_ssl" env:"DB_REQUIRE_SSL"`
+	Username     string `yaml:"username" env:"APP_DB_USERNAME"`
+	Password     string `yaml:"password" env:"APP_DB_PASSWORD"`
+	Port         uint16 `yaml:"port" env:"APP_DB_PORT"`
+	Host         string `yaml:"host" env:"APP_DB_HOST"`
+	DatabaseName string `yaml:"database_name" env:"APP_DB_NAME"`
+	RequireSSL   bool   `yaml:"require_ssl" env:"APP_DB_REQUIRE_SSL"`
 }
 
 func (setting Settings) PostgresSQLDSN() string {
