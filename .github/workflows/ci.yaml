@@ -40,9 +40,11 @@ jobs:
          ~/.cargo/registry
          ~/.cargo/bin/cargo-sqlx
          ~/.cargo/bin/sqlx
-        key: ubuntu-cargo-${{ hashFiles('Cargo.lock') }}
+         ~/go/pkg/mod
+         ~/.cache/go-build
+        key: ubuntu-cache-${{ hashFiles('go.sum') }}
         restore-keys: |
-              ubuntu-cargo-
+              ubuntu-cache-
 
     - name: Install sqlx-cli
       run: |
@@ -73,7 +75,6 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version-file: ./go.mod
-        cache-dependency-path: ./go.sum
 
     - name: Test
       run: |
