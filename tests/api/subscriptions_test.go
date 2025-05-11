@@ -2,9 +2,7 @@ package api
 
 import (
 	"net/http"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/guuzaa/email-newsletter/internal/models"
 
@@ -13,13 +11,7 @@ import (
 
 func TestSubscribeReturnsA200forValidFormData(t *testing.T) {
 	const body = "name=le%20guin&email=ursula_le_guin%40gmail.com"
-	app := SpawnApp()
-	req, _ := http.NewRequest("POST", "/subscriptions", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	client := http.Client{
-		Timeout: 1 * time.Second,
-	}
-	resp, err := client.Do(req)
+	resp, err := app.PostSubscriptions(body)
 	assert.Nil(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -30,11 +22,6 @@ func TestSubscribeReturnsA200forValidFormData(t *testing.T) {
 }
 
 func TestSubscribeReturnsA400WhenDataIsMissing(t *testing.T) {
-	_ = SpawnApp()
-
-	client := http.Client{
-		Timeout: 1 * time.Second,
-	}
 	var testCases = []struct {
 		name     string
 		body     string
@@ -46,9 +33,7 @@ func TestSubscribeReturnsA400WhenDataIsMissing(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		req, _ := http.NewRequest("POST", "/subscriptions", strings.NewReader(tc.body))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		resp, err := client.Do(req)
+		resp, err := app.PostSubscriptions(tc.body)
 		assert.Nil(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, tc.expected, resp.StatusCode)
@@ -56,10 +41,6 @@ func TestSubscribeReturnsA400WhenDataIsMissing(t *testing.T) {
 }
 
 func TestSubscribeReturnsA200WhenFieldsArePresentButEmpty(t *testing.T) {
-	_ = SpawnApp()
-	client := http.Client{
-		Timeout: 1 * time.Second,
-	}
 	var testCases = []struct {
 		name     string
 		body     string
@@ -71,10 +52,7 @@ func TestSubscribeReturnsA200WhenFieldsArePresentButEmpty(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		req, _ := http.NewRequest("POST", "/subscriptions", strings.NewReader(tc.body))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-		resp, err := client.Do(req)
+		resp, err := app.PostSubscriptions(tc.body)
 		assert.Nil(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, tc.expected, resp.StatusCode)

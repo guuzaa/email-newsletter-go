@@ -2,6 +2,9 @@ package api
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/guuzaa/email-newsletter/cmd"
@@ -11,9 +14,22 @@ import (
 	"gorm.io/gorm"
 )
 
+var app = SpawnApp()
+
 type TestApp struct {
-	Address string
-	DBPool  *gorm.DB
+	Address     string
+	DBPool      *gorm.DB
+	EmailClient *internal.EmailClient
+}
+
+func (app *TestApp) PostSubscriptions(body string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/subscriptions", app.Address)
+	client := http.Client{
+		Timeout: 1 * time.Second,
+	}
+	req, _ := http.NewRequest("POST", url, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return client.Do(req)
 }
 
 func SpawnApp() TestApp {
@@ -36,11 +52,17 @@ func SpawnApp() TestApp {
 			TimeoutMilliseconds: 1000,
 		},
 	}
-	app := TestApp{
-		Address: settings.Address(),
-		DBPool:  nil,
-	}
 
+	senderEmail, err := settings.EmailClient.Sender()
+	if err != nil {
+		panic(err)
+	}
+	emailClient := internal.NewEmailClient(settings.EmailClient.BaseURL, senderEmail, settings.EmailClient.AuthorizationToken, settings.EmailClient.Timeout())
+	app := TestApp{
+		Address:     fmt.Sprintf("http://%s", settings.Address()),
+		DBPool:      nil,
+		EmailClient: &emailClient,
+	}
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  settings.PostgresSQLDSN(), // data source name, refer https://github.com/jackc/pgx
 		PreferSimpleProtocol: true,                      // disables implicit prepared statement usage. By default pgx automatically uses the extended protocol
@@ -55,12 +77,6 @@ func SpawnApp() TestApp {
 		panic(result.Error)
 	}
 	app.DBPool, _ = database.SetupDB(&settings)
-
-	senderEmail, err := settings.EmailClient.Sender()
-	if err != nil {
-		panic(err)
-	}
-	emailClient := internal.NewEmailClient(settings.EmailClient.BaseURL, senderEmail, settings.EmailClient.AuthorizationToken, settings.EmailClient.Timeout())
-	cmd.Run(settings.Address(), db, &emailClient)
+	cmd.Run(settings.Address(), app.DBPool, &emailClient)
 	return app
 }

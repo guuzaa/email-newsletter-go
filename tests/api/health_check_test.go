@@ -11,11 +11,10 @@ import (
 )
 
 func TestHealthCheck(t *testing.T) {
-	app := SpawnApp()
 	client := http.Client{
 		Timeout: 1 * time.Second,
 	}
-	url := fmt.Sprintf("http://%s/health_check", app.Address)
+	url := fmt.Sprintf("%s/health_check", app.Address)
 	req, err := http.NewRequest("GET", url, nil)
 	assert.Nil(t, err)
 	req.Header.Set("Content-Type", "plain/text")

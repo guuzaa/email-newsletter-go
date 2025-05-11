@@ -17,7 +17,7 @@ test: fmt
 	go test ./... -- -shuffle
 
 build: fmt
-	go build -o target/$(BINARY) ./cmd/.
+	go build -o target/$(BINARY) .
 
 clean:
 	rm -rf target
