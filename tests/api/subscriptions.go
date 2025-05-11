@@ -2,11 +2,10 @@ package api
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/guuzaa/email-newsletter/internal/api/routes"
 	"github.com/guuzaa/email-newsletter/internal/models"
 
 	"github.com/stretchr/testify/assert"
@@ -15,14 +14,15 @@ import (
 func TestSubscribeReturnsA200forValidFormData(t *testing.T) {
 	const body = "name=le%20guin&email=ursula_le_guin%40gmail.com"
 	app := SpawnApp()
-	r := routes.SetupRouter(app.DBPool)
-	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/subscriptions", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	r.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-
+	client := http.Client{
+		Timeout: 1 * time.Second,
+	}
+	resp, err := client.Do(req)
+	assert.Nil(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	var subscription models.Subscription
 	app.DBPool.First(&subscription)
 	assert.Equal(t, "le guin", subscription.Name)
@@ -30,8 +30,11 @@ func TestSubscribeReturnsA200forValidFormData(t *testing.T) {
 }
 
 func TestSubscribeReturnsA400WhenDataIsMissing(t *testing.T) {
-	app := SpawnApp()
-	r := routes.SetupRouter(app.DBPool)
+	_ = SpawnApp()
+
+	client := http.Client{
+		Timeout: 1 * time.Second,
+	}
 	var testCases = []struct {
 		name     string
 		body     string
@@ -43,18 +46,20 @@ func TestSubscribeReturnsA400WhenDataIsMissing(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/subscriptions", strings.NewReader(tc.body))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		r.ServeHTTP(w, req)
-		assert.Equal(t, tc.expected, w.Code)
+		resp, err := client.Do(req)
+		assert.Nil(t, err)
+		defer resp.Body.Close()
+		assert.Equal(t, tc.expected, resp.StatusCode)
 	}
 }
 
 func TestSubscribeReturnsA200WhenFieldsArePresentButEmpty(t *testing.T) {
-	app := SpawnApp()
-	r := routes.SetupRouter(app.DBPool)
-
+	_ = SpawnApp()
+	client := http.Client{
+		Timeout: 1 * time.Second,
+	}
 	var testCases = []struct {
 		name     string
 		body     string
@@ -66,10 +71,12 @@ func TestSubscribeReturnsA200WhenFieldsArePresentButEmpty(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/subscriptions", strings.NewReader(tc.body))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		r.ServeHTTP(w, req)
-		assert.Equal(t, tc.expected, w.Code)
+
+		resp, err := client.Do(req)
+		assert.Nil(t, err)
+		defer resp.Body.Close()
+		assert.Equal(t, tc.expected, resp.StatusCode)
 	}
 }

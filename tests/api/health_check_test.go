@@ -1,21 +1,29 @@
 package api
 
 import (
+	"fmt"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"testing"
+	"time"
 
-	"github.com/guuzaa/email-newsletter/internal/api/routes"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHealthCheck(t *testing.T) {
 	app := SpawnApp()
-	r := routes.SetupRouter(app.DBPool)
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/health_check", nil)
+	client := http.Client{
+		Timeout: 1 * time.Second,
+	}
+	url := fmt.Sprintf("http://%s/health_check", app.Address)
+	req, err := http.NewRequest("GET", url, nil)
+	assert.Nil(t, err)
 	req.Header.Set("Content-Type", "plain/text")
-	r.ServeHTTP(w, req)
-	assert.Equal(t, 0, w.Body.Len())
-	assert.Equal(t, http.StatusOK, w.Code)
+	resp, err := client.Do(req)
+	assert.Nil(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(body))
 }

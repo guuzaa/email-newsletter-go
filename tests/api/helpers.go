@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/guuzaa/email-newsletter/cmd"
 	"github.com/guuzaa/email-newsletter/internal"
 	"github.com/guuzaa/email-newsletter/internal/database"
 	"gorm.io/driver/postgres"
@@ -54,5 +55,12 @@ func SpawnApp() TestApp {
 		panic(result.Error)
 	}
 	app.DBPool, _ = database.SetupDB(&settings)
+
+	senderEmail, err := settings.EmailClient.Sender()
+	if err != nil {
+		panic(err)
+	}
+	emailClient := internal.NewEmailClient(settings.EmailClient.BaseURL, senderEmail, settings.EmailClient.AuthorizationToken, settings.EmailClient.Timeout())
+	cmd.Run(settings.Address(), db, &emailClient)
 	return app
 }
