@@ -4,19 +4,37 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/guuzaa/email-newsletter/internal/domain"
 	"gopkg.in/yaml.v3"
 )
 
 type Settings struct {
 	Database    DatabaseSettings    `yaml:"database"`
 	Application ApplicationSettings `yaml:"application"`
+	EmailClient EmailClientSettings `yaml:"email_client"`
 }
 
 type ApplicationSettings struct {
 	Port uint16 `yaml:"port" env:"APP_PORT"`
 	Host string `yaml:"host" env:"APP_HOST"`
+}
+
+type EmailClientSettings struct {
+	BaseURL             string `yaml:"base_url" env:"APP_EMAIL_BASE_URL"`
+	SenderEmail         string `yaml:"sender_email" env:"APP_SENDER_EMAIL"`
+	AuthorizationToken  string `yaml:"authorization_token" env:"APP_EMAIL_AUTHORIZATION_TOKEN"`
+	TimeoutMilliseconds uint64 `yaml:"timeout_milliseconds" env:"APP_EMAIL_CLIENT_TIMEOUT_MILLISECONDS"`
+}
+
+func (ecs EmailClientSettings) Sender() (domain.SubscriberEmail, error) {
+	return domain.SubscriberEmailFrom(ecs.SenderEmail)
+}
+
+func (ecs EmailClientSettings) Timeout() time.Duration {
+	return time.Duration(ecs.TimeoutMilliseconds) * time.Millisecond
 }
 
 type DatabaseSettings struct {
@@ -76,6 +94,19 @@ func mergeSettings(base, overlay Settings) Settings {
 	}
 	if overlay.Application.Host != "" {
 		result.Application.Host = overlay.Application.Host
+	}
+
+	if overlay.EmailClient.BaseURL != "" {
+		result.EmailClient.BaseURL = overlay.EmailClient.BaseURL
+	}
+	if overlay.EmailClient.SenderEmail != "" {
+		result.EmailClient.SenderEmail = overlay.EmailClient.SenderEmail
+	}
+	if overlay.EmailClient.AuthorizationToken != "" {
+		result.EmailClient.AuthorizationToken = overlay.EmailClient.AuthorizationToken
+	}
+	if overlay.EmailClient.TimeoutMilliseconds != 0 {
+		result.EmailClient.TimeoutMilliseconds = overlay.EmailClient.TimeoutMilliseconds
 	}
 
 	return result

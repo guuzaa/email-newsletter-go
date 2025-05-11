@@ -1,4 +1,4 @@
-package integration
+package api
 
 import (
 	"fmt"
@@ -27,6 +27,12 @@ func SpawnApp() TestApp {
 		Application: internal.ApplicationSettings{
 			Host: "localhost",
 			Port: 8080,
+		},
+		EmailClient: internal.EmailClientSettings{
+			BaseURL:             "localhost",
+			SenderEmail:         "test@example.com",
+			AuthorizationToken:  "test_token",
+			TimeoutMilliseconds: 1000,
 		},
 	}
 	app := TestApp{

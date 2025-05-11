@@ -16,6 +16,13 @@ import (
 var logger = internal.Logger()
 
 func Run(config *internal.Settings) {
+	senderEmail, err := config.EmailClient.Sender()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to parse sender email")
+	}
+	timeout := config.EmailClient.Timeout()
+	_ = internal.NewEmailClient(config.EmailClient.BaseURL, senderEmail, config.EmailClient.AuthorizationToken, timeout)
+
 	db, err := database.SetupDB(config)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect database")
