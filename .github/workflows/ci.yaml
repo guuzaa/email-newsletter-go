@@ -75,6 +75,10 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version-file: ./go.mod
+        
+    - name: Format-Check
+      run: |
+        test -z $(go fmt ./...)
 
     - name: Test
       run: |

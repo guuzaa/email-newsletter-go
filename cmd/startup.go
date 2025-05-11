@@ -1,31 +1,38 @@
-package main
+package cmd
 
 import (
-	"context"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/guuzaa/email-newsletter/internal"
 	"github.com/guuzaa/email-newsletter/internal/api/routes"
 	"github.com/guuzaa/email-newsletter/internal/database"
+	"gorm.io/gorm"
 )
 
 var logger = internal.Logger()
 
-func Run(config *internal.Settings) {
+func Build(config *internal.Settings) (*http.Server, error) {
+	senderEmail, err := config.EmailClient.Sender()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to parse sender email")
+		return nil, err
+	}
+	timeout := config.EmailClient.Timeout()
+	emailClient := internal.NewEmailClient(config.EmailClient.BaseURL, senderEmail, config.EmailClient.AuthorizationToken, timeout)
+
 	db, err := database.SetupDB(config)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect database")
+		return nil, err
 	}
+	return Run(config.Address(), db, &emailClient)
+}
 
-	r := routes.SetupRouter(db)
-
+func Run(address string, db *gorm.DB, emailClient *internal.EmailClient) (*http.Server, error) {
+	r := routes.SetupRouter(db, emailClient)
 	// ─── Start server in its own goroutine ───────────────────────────────────────
 	srv := &http.Server{
-		Addr:    config.Address(),
+		Addr:    address,
 		Handler: r,
 	}
 	go func() {
@@ -33,17 +40,5 @@ func Run(config *internal.Settings) {
 			logger.Fatal().Err(err).Msg("listen and serve")
 		}
 	}()
-
-	// ─── Wait for interrupt (SIGINT/SIGTERM) and shut down gracefully ───────────
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
-	logger.Warn().Msg("Shutting down server...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.Fatal().Err(err).Msg("Server forced to shutdown")
-	}
-	logger.Warn().Msg("Server exiting")
+	return srv, nil
 }
