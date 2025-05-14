@@ -14,10 +14,9 @@ import (
 	"gorm.io/gorm"
 )
 
-var app = SpawnApp()
-
 type TestApp struct {
 	Address     string
+	Port        uint16
 	DBPool      *gorm.DB
 	EmailClient *internal.EmailClient
 }
@@ -42,11 +41,11 @@ func SpawnApp() TestApp {
 			Password:     "password",
 		},
 		Application: internal.ApplicationSettings{
-			Host: "localhost",
-			Port: 8080,
+			Host: "127.0.0.1",
+			Port: 0,
 		},
 		EmailClient: internal.EmailClientSettings{
-			BaseURL:             "localhost",
+			BaseURL:             "http://localhost:8081",
 			SenderEmail:         "test@example.com",
 			AuthorizationToken:  "test_token",
 			TimeoutMilliseconds: 1000,
@@ -60,6 +59,7 @@ func SpawnApp() TestApp {
 	emailClient := internal.NewEmailClient(settings.EmailClient.BaseURL, senderEmail, settings.EmailClient.AuthorizationToken, settings.EmailClient.Timeout())
 	app := TestApp{
 		Address:     fmt.Sprintf("http://%s", settings.Address()),
+		Port:        settings.Application.Port,
 		DBPool:      nil,
 		EmailClient: &emailClient,
 	}
@@ -77,6 +77,10 @@ func SpawnApp() TestApp {
 		panic(result.Error)
 	}
 	app.DBPool, _ = database.SetupDB(&settings)
-	cmd.Run(settings.Address(), app.DBPool, &emailClient)
+	srv, err := cmd.Run(settings.Address(), app.DBPool, &emailClient)
+	if err != nil {
+		panic(err)
+	}
+	app.Address = fmt.Sprintf("http://%s", srv.Addr)
 	return app
 }

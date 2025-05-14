@@ -64,7 +64,7 @@ func TestSendEmailSendsTheExpectedRequest(t *testing.T) {
 			http.Error(w, "Failed to read request body", http.StatusInternalServerError)
 			return
 		}
-		var payload sendEmailRequest
+		var payload SendEmailRequest
 		err = json.Unmarshal(body, &payload)
 		if err != nil {
 			http.Error(w, "Failed to unmarshal request body", http.StatusInternalServerError)

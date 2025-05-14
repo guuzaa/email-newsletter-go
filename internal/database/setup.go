@@ -16,6 +16,7 @@ func SetupDB(settings *internal.Settings) (*gorm.DB, error) {
 	}), &gorm.Config{}) // TODO: use zerolog as logger
 
 	db.AutoMigrate(&models.Subscription{})
+	db.AutoMigrate(&models.SubscriptionTokens{})
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, err

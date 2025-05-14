@@ -14,6 +14,7 @@ func TestHealthCheck(t *testing.T) {
 	client := http.Client{
 		Timeout: 1 * time.Second,
 	}
+	app := SpawnApp()
 	url := fmt.Sprintf("%s/health_check", app.Address)
 	req, err := http.NewRequest("GET", url, nil)
 	assert.Nil(t, err)

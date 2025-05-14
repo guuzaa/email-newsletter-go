@@ -32,8 +32,7 @@ func UseLogger() gin.HandlerFunc {
 // GetContextLogger returns a logger with request ID from context
 func GetContextLogger(c *gin.Context) zerolog.Logger {
 	logger := internal.Logger()
-	requestID, exists := c.Get("requestID")
-	if exists {
+	if requestID, exists := c.Get("requestID"); exists {
 		logger = logger.With().Interface("ID", requestID).Logger()
 	}
 	return logger

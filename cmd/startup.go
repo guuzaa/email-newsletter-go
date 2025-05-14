@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"net"
 	"net/http"
 
 	"github.com/guuzaa/email-newsletter/internal"
@@ -30,13 +31,19 @@ func Build(config *internal.Settings) (*http.Server, error) {
 
 func Run(address string, db *gorm.DB, emailClient *internal.EmailClient) (*http.Server, error) {
 	r := routes.SetupRouter(db, emailClient)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create listener")
+		return nil, err
+	}
+
 	// ─── Start server in its own goroutine ───────────────────────────────────────
 	srv := &http.Server{
-		Addr:    address,
 		Handler: r,
+		Addr:    listener.Addr().String(),
 	}
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
 			logger.Fatal().Err(err).Msg("listen and serve")
 		}
 	}()
