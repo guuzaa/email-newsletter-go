@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/guuzaa/email-newsletter/internal"
-	"github.com/guuzaa/email-newsletter/internal/models"
+	"github.com/guuzaa/email-newsletter/internal/database/models"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"

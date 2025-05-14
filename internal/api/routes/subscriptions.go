@@ -7,9 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/guuzaa/email-newsletter/internal"
+	"github.com/guuzaa/email-newsletter/internal/database/models"
 	"github.com/guuzaa/email-newsletter/internal/domain"
 	"github.com/guuzaa/email-newsletter/internal/middleware"
-	"github.com/guuzaa/email-newsletter/internal/models"
 	"gorm.io/gorm"
 )
 

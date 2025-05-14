@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/guuzaa/email-newsletter/internal"
-	"github.com/guuzaa/email-newsletter/internal/models"
+	"github.com/guuzaa/email-newsletter/internal/database/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
