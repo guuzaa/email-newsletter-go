@@ -11,7 +11,7 @@ init_db:
 	./scripts/init_db.sh
 
 run: fmt
-	go run ./cmd/.
+	go run .
 
 test: fmt
 	go test ./... -- -shuffle

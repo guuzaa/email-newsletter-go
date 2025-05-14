@@ -15,7 +15,7 @@ func SetupRouter(db *gorm.DB, emailClient *internal.EmailClient) *gin.Engine {
 
 	r.GET("/health_check", healthCheck)
 
-	subscriptionHandler := NewSubscriptionHandler(db)
+	subscriptionHandler := NewSubscriptionHandler(db, emailClient)
 	r.POST("/subscriptions", subscriptionHandler.subscribe)
 
 	return r

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/guuzaa/email-newsletter/internal"
-	"github.com/guuzaa/email-newsletter/internal/models"
+	"github.com/guuzaa/email-newsletter/internal/database/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -16,6 +16,7 @@ func SetupDB(settings *internal.Settings) (*gorm.DB, error) {
 	}), &gorm.Config{}) // TODO: use zerolog as logger
 
 	db.AutoMigrate(&models.Subscription{})
+	db.AutoMigrate(&models.SubscriptionTokens{})
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, err

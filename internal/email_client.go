@@ -32,7 +32,7 @@ func NewEmailClient(baseUrl string, sender domain.SubscriberEmail, authorization
 	}
 }
 
-type sendEmailRequest struct {
+type SendEmailRequest struct {
 	From     string `json:"From"`
 	To       string `json:"To"`
 	Subject  string `json:"Subject"`
@@ -40,14 +40,14 @@ type sendEmailRequest struct {
 	TextBody string `json:"TextBody"`
 }
 
-func (ec *EmailClient) SendEmail(recipient domain.SubscriberEmail, subject, html_content, text_content string) error {
+func (ec *EmailClient) SendEmail(recipient domain.SubscriberEmail, subject, htmlContent, textContent string) error {
 	url := fmt.Sprintf("%s/email", ec.baseUrl)
-	request := sendEmailRequest{
+	request := SendEmailRequest{
 		From:     ec.sender.String(),
 		To:       recipient.String(),
 		Subject:  subject,
-		HtmlBody: html_content,
-		TextBody: text_content,
+		HtmlBody: htmlContent,
+		TextBody: textContent,
 	}
 	payload, err := json.Marshal(request)
 	if err != nil {
@@ -70,4 +70,12 @@ func (ec *EmailClient) SendEmail(recipient domain.SubscriberEmail, subject, html
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 	return nil
+}
+
+func (ec *EmailClient) Client() *http.Client {
+	return ec.httpClient
+}
+
+func (ec *EmailClient) BaseURL() string {
+	return ec.baseUrl
 }
