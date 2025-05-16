@@ -11,7 +11,7 @@ init_db:
 	./scripts/init_db.sh
 
 run: fmt
-	go run .
+	LOG_LEVEL=trace go run .
 
 test: fmt
 	go test ./... -- -shuffle

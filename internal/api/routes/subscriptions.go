@@ -2,7 +2,9 @@ package routes
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -16,28 +18,30 @@ import (
 type SubscriptionHandler struct {
 	db          *gorm.DB
 	emailClient *internal.EmailClient
+	baseURL     string
 }
 
-func NewSubscriptionHandler(db *gorm.DB, emailClient *internal.EmailClient) *SubscriptionHandler {
-	return &SubscriptionHandler{db: db, emailClient: emailClient}
+func NewSubscriptionHandler(db *gorm.DB, emailClient *internal.EmailClient, baseURL string) *SubscriptionHandler {
+	return &SubscriptionHandler{db: db, emailClient: emailClient, baseURL: baseURL}
 }
 
-func (h *SubscriptionHandler) insertSubscriber(c *gin.Context, subscriber domain.NewSubscriber) error {
+func (h *SubscriptionHandler) insertSubscriber(c *gin.Context, subscriber domain.NewSubscriber) (string, error) {
 	log := middleware.GetContextLogger(c)
 	log.Trace().Msg("inserting subscription")
+	subscriberID := uuid.NewString()
 	subscription := models.Subscription{
 		Name:   subscriber.Name.String(),
 		Email:  subscriber.Email.String(),
-		ID:     uuid.NewString(),
+		ID:     subscriberID,
 		Status: "pending_confirmation",
 	}
 
 	if err := h.db.Create(&subscription).Error; err != nil {
 		log.Warn().Err(err).Msg("failed to create subscription in database")
-		return err
+		return "", err
 	}
 	log.Trace().Str("name", subscription.Name).Str("email", subscription.Email).Msg("added new subscriber")
-	return nil
+	return subscriberID, nil
 }
 
 func (h *SubscriptionHandler) parseSubscription(c *gin.Context) (domain.NewSubscriber, error) {
@@ -75,12 +79,19 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	if err = h.insertSubscriber(c, newSubscriber); err != nil {
+	subscriberID, err := h.insertSubscriber(c, newSubscriber)
+	if err != nil {
 		log.Debug().Err(err).Msg("failed to insert subscription")
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-	if err = h.sendConfirmationEmail(newSubscriber); err != nil {
+	subscriptionToken := generateSubscriptionToken()
+	if err = h.storeToken(subscriberID, subscriptionToken); err != nil {
+		log.Warn().Err(err).Msg("failed to store subscription")
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err = h.sendConfirmationEmail(newSubscriber, subscriptionToken); err != nil {
 		log.Warn().Err(err).Msg("failed to send confirmation email")
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -89,12 +100,31 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 	c.String(http.StatusOK, "")
 }
 
-func (h *SubscriptionHandler) sendConfirmationEmail(newSubscriber domain.NewSubscriber) error {
+func (h *SubscriptionHandler) sendConfirmationEmail(newSubscriber domain.NewSubscriber, token string) error {
 	subject := "Welcome!"
-	confirmationLink := "https://there-is-no-such-domain.com/subscriptions/confirm"
+	confirmationLink := fmt.Sprintf("%s/subscriptions/confirm?subscription_token=%s", h.baseURL, token)
 	htmlContent := fmt.Sprintf(`Welcome to our newsletter!<br />
 	Click <a href="%s">here</a> to confirm your subscription.`, confirmationLink)
 	textContent := fmt.Sprintf(`Welcome to our newsletter!
 	Click %s to confirm your subscription.`, confirmationLink)
 	return h.emailClient.SendEmail(newSubscriber.Email, subject, htmlContent, textContent)
+}
+
+func (h *SubscriptionHandler) storeToken(subscriberID string, subscriptionToken string) error {
+	token := models.SubscriptionTokens{
+		SubscriptionID:    subscriberID,
+		SubscriptionToken: subscriptionToken,
+	}
+	result := h.db.Create(token)
+	return result.Error
+}
+
+func generateSubscriptionToken() string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	token := make([]byte, 25)
+	for i := range token {
+		rand.NewSource(time.Now().UnixNano())
+		token[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(token)
 }

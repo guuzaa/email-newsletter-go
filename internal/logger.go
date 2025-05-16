@@ -29,7 +29,6 @@ func Logger() zerolog.Logger {
 				logLevel = zerolog.WarnLevel
 			}
 		}
-
 		var output io.Writer = zerolog.ConsoleWriter{
 			Out:        os.Stdout,
 			TimeFormat: time.RFC3339,
