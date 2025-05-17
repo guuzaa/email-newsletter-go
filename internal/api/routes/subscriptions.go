@@ -71,6 +71,16 @@ func (h *SubscriptionHandler) parseSubscription(c *gin.Context) (domain.NewSubsc
 	}, nil
 }
 
+func (h *SubscriptionHandler) hasSubscriber(subscriber domain.NewSubscriber) bool {
+	email := subscriber.Email.String()
+	var subscription models.Subscription
+	result := h.db.Where("email = ?", email).First(&subscription)
+	if err := result.Error; err != nil {
+		return false
+	}
+	return result.RowsAffected == 1 && subscription.Status == "pending_confirmation"
+}
+
 func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 	log := middleware.GetContextLogger(c)
 	newSubscriber, err := h.parseSubscription(c)
@@ -79,6 +89,12 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
+
+	if h.hasSubscriber(newSubscriber) {
+		log.Trace().Msg("subscribe twice")
+		c.String(http.StatusOK, "")
+	}
+
 	tx := h.db.Begin()
 	subscriberID, err := h.insertSubscriber(c, tx, newSubscriber)
 	if err != nil {
