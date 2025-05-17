@@ -22,20 +22,20 @@ func (h *ConfirmSubscriptionHandler) confirm(c *gin.Context) {
 	log := middleware.GetContextLogger(c)
 	subscriptionToken, ok := c.GetQuery("subscription_token")
 	if !ok {
-		log.Debug().Msg("Missing subscription token")
+		log.Debug().Msg("missing subscription token")
 		c.String(http.StatusBadRequest, "Missing subscription token")
 		return
 	}
 
 	if !domain.ValidSubscriberToken(subscriptionToken) {
-		log.Debug().Msg("Invalid subscriber token")
+		log.Debug().Msg("invalid subscriber token")
 		c.String(http.StatusBadRequest, "Missing subscription token")
 		return
 	}
 
 	subscriptionID, err := h.getSubscriberIDFromToken(subscriptionToken)
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get subscription ID from token")
+		log.Debug().Err(err).Msg("failed to get subscription ID from token")
 		c.String(http.StatusInternalServerError, "Failed to confirm subscription")
 		return
 	}
@@ -47,7 +47,7 @@ func (h *ConfirmSubscriptionHandler) confirm(c *gin.Context) {
 	}
 
 	if err = h.confirmSubscription(subscriptionID); err != nil {
-		log.Debug().Err(err).Msg("Failed to confirm subscription")
+		log.Debug().Err(err).Msg("failed to confirm subscription")
 		c.String(http.StatusInternalServerError, "Failed to confirm subscription")
 		return
 	}

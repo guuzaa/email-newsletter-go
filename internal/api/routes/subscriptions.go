@@ -69,7 +69,7 @@ func (h *SubscriptionHandler) parseSubscription(c *gin.Context) (domain.NewSubsc
 	}, nil
 }
 
-func (h *SubscriptionHandler) hasSubscriber(subscriber domain.NewSubscriber) bool {
+func (h *SubscriptionHandler) hasPendingSubscriber(subscriber domain.NewSubscriber) bool {
 	email := subscriber.Email.String()
 	var subscription models.Subscription
 	result := h.db.Where("email = ?", email).First(&subscription)
@@ -88,7 +88,7 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 		return
 	}
 
-	if h.hasSubscriber(newSubscriber) {
+	if h.hasPendingSubscriber(newSubscriber) {
 		log.Trace().Msg("subscribe twice")
 		c.String(http.StatusOK, "")
 	}
