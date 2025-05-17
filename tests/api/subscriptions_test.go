@@ -89,7 +89,7 @@ func TestSubscribingTwiceReceivesTwoConfirmationEmails(t *testing.T) {
 	app.DBPool.First(&subscription)
 	assert.Equal(t, "le guin", subscription.Name)
 	assert.Equal(t, "ursula_le_guin@gmail.com", subscription.Email)
-	assert.Equal(t, "pending_confirmation", subscription.Status)
+	assert.Equal(t, models.SubscriptionStatusPending, subscription.Status)
 }
 
 func TestSubscribePersistsTheNewSubscriber(t *testing.T) {
@@ -120,7 +120,7 @@ func TestSubscribePersistsTheNewSubscriber(t *testing.T) {
 	app.DBPool.First(&subscription)
 	assert.Equal(t, "le guin", subscription.Name)
 	assert.Equal(t, "ursula_le_guin@gmail.com", subscription.Email)
-	assert.Equal(t, "pending_confirmation", subscription.Status)
+	assert.Equal(t, models.SubscriptionStatusPending, subscription.Status)
 }
 
 func TestSubscribeReturnsA400WhenDataIsMissing(t *testing.T) {

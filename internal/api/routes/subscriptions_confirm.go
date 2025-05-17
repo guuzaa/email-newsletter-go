@@ -33,6 +33,12 @@ func (h *ConfirmSubscriptionHandler) confirm(c *gin.Context) {
 		return
 	}
 
+	if h.subscriptionHasConfirmed(subscriptionID) {
+		log.Trace().Msg("click subscription link twice")
+		c.String(http.StatusOK, "You've confirmed the email!")
+		return
+	}
+
 	if err = h.confirmSubscription(subscriptionID); err != nil {
 		log.Debug().Err(err).Msg("Failed to confirm subscription")
 		c.String(http.StatusInternalServerError, "Failed to confirm subscription")
@@ -42,9 +48,15 @@ func (h *ConfirmSubscriptionHandler) confirm(c *gin.Context) {
 	c.String(http.StatusOK, "")
 }
 
+func (h *ConfirmSubscriptionHandler) subscriptionHasConfirmed(subscriptionID string) bool {
+	var subscription models.Subscription
+	result := h.db.Where(&models.Subscription{ID: subscriptionID, Status: models.SubscriptionStatusConfirmed}).First(&subscription)
+	return result.Error == nil
+}
+
 func (h *ConfirmSubscriptionHandler) confirmSubscription(subscriptionID string) error {
 	var subscription models.Subscription
-	result := h.db.Model(&subscription).Where("id = ?", subscriptionID).Update("status", "confirmed")
+	result := h.db.Model(&subscription).Where("id = ?", subscriptionID).Update("status", models.SubscriptionStatusConfirmed)
 	return result.Error
 }
 

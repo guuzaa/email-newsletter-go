@@ -33,7 +33,7 @@ func (h *SubscriptionHandler) insertSubscriber(c *gin.Context, tx *gorm.DB, subs
 		Name:   subscriber.Name.String(),
 		Email:  subscriber.Email.String(),
 		ID:     subscriberID,
-		Status: "pending_confirmation",
+		Status: models.SubscriptionStatusPending,
 	}
 
 	if err := tx.Create(&subscription).Error; err != nil {
@@ -78,7 +78,7 @@ func (h *SubscriptionHandler) hasSubscriber(subscriber domain.NewSubscriber) boo
 	if err := result.Error; err != nil {
 		return false
 	}
-	return result.RowsAffected == 1 && subscription.Status == "pending_confirmation"
+	return result.RowsAffected == 1 && subscription.Status == models.SubscriptionStatusPending
 }
 
 func (h *SubscriptionHandler) subscribe(c *gin.Context) {
