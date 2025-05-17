@@ -2,9 +2,7 @@ package routes
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -103,7 +101,7 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-	subscriptionToken := generateSubscriptionToken()
+	subscriptionToken := domain.NewSubscriptionToken()
 	if err = h.storeToken(tx, subscriberID, subscriptionToken); err != nil {
 		log.Warn().Err(err).Msg("failed to store subscription")
 		tx.Rollback()
@@ -141,14 +139,4 @@ func (h *SubscriptionHandler) storeToken(tx *gorm.DB, subscriberID string, subsc
 	}
 	result := tx.Create(token)
 	return result.Error
-}
-
-func generateSubscriptionToken() string {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	token := make([]byte, 25)
-	for i := range token {
-		rand.NewSource(time.Now().UnixNano())
-		token[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(token)
 }

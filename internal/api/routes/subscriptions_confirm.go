@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/guuzaa/email-newsletter/internal/database/models"
+	"github.com/guuzaa/email-newsletter/internal/domain"
 	"github.com/guuzaa/email-newsletter/internal/middleware"
 	"gorm.io/gorm"
 )
@@ -22,6 +23,12 @@ func (h *ConfirmSubscriptionHandler) confirm(c *gin.Context) {
 	subscriptionToken, ok := c.GetQuery("subscription_token")
 	if !ok {
 		log.Debug().Msg("Missing subscription token")
+		c.String(http.StatusBadRequest, "Missing subscription token")
+		return
+	}
+
+	if !domain.ValidSubscriberToken(subscriptionToken) {
+		log.Debug().Msg("Invalid subscriber token")
 		c.String(http.StatusBadRequest, "Missing subscription token")
 		return
 	}
