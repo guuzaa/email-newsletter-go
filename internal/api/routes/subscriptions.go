@@ -2,9 +2,7 @@ package routes
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -33,7 +31,7 @@ func (h *SubscriptionHandler) insertSubscriber(c *gin.Context, tx *gorm.DB, subs
 		Name:   subscriber.Name.String(),
 		Email:  subscriber.Email.String(),
 		ID:     subscriberID,
-		Status: "pending_confirmation",
+		Status: models.SubscriptionStatusPending,
 	}
 
 	if err := tx.Create(&subscription).Error; err != nil {
@@ -71,6 +69,16 @@ func (h *SubscriptionHandler) parseSubscription(c *gin.Context) (domain.NewSubsc
 	}, nil
 }
 
+func (h *SubscriptionHandler) hasPendingSubscriber(subscriber domain.NewSubscriber) bool {
+	email := subscriber.Email.String()
+	var subscription models.Subscription
+	result := h.db.Where("email = ?", email).First(&subscription)
+	if err := result.Error; err != nil {
+		return false
+	}
+	return result.RowsAffected == 1 && subscription.Status == models.SubscriptionStatusPending
+}
+
 func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 	log := middleware.GetContextLogger(c)
 	newSubscriber, err := h.parseSubscription(c)
@@ -79,6 +87,12 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
+
+	if h.hasPendingSubscriber(newSubscriber) {
+		log.Trace().Msg("subscribe twice")
+		c.String(http.StatusOK, "")
+	}
+
 	tx := h.db.Begin()
 	subscriberID, err := h.insertSubscriber(c, tx, newSubscriber)
 	if err != nil {
@@ -87,7 +101,7 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-	subscriptionToken := generateSubscriptionToken()
+	subscriptionToken := domain.NewSubscriptionToken()
 	if err = h.storeToken(tx, subscriberID, subscriptionToken); err != nil {
 		log.Warn().Err(err).Msg("failed to store subscription")
 		tx.Rollback()
@@ -125,14 +139,4 @@ func (h *SubscriptionHandler) storeToken(tx *gorm.DB, subscriberID string, subsc
 	}
 	result := tx.Create(token)
 	return result.Error
-}
-
-func generateSubscriptionToken() string {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	token := make([]byte, 25)
-	for i := range token {
-		rand.NewSource(time.Now().UnixNano())
-		token[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(token)
 }

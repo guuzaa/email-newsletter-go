@@ -9,3 +9,8 @@ type Subscription struct {
 	SubscribedAt time.Time `gorm:"subscribed_at;not null"`
 	Status       string    `gorm:"status"`
 }
+
+const (
+	SubscriptionStatusConfirmed = "confirmed"
+	SubscriptionStatusPending   = "pending_confirmation"
+)

@@ -1,7 +1,7 @@
 FROM golang:1.24.2-alpine AS builder
 WORKDIR /app
 COPY . .
-RUN go build -o target/email-newsletter ./cmd/.
+RUN go build -o target/email-newsletter ./
 
 
 FROM alpine:latest AS runtime
