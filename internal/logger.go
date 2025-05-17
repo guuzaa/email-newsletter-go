@@ -3,14 +3,14 @@ package internal
 import (
 	"io"
 	"os"
-	"strconv"
 	"sync"
 	"time"
+
+	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
-	"runtime/debug"
 )
 
 var (
@@ -22,11 +22,13 @@ func Logger() zerolog.Logger {
 	once.Do(func() {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 		zerolog.TimeFieldFormat = time.RFC3339Nano
-		logLevel, err := strconv.Atoi(os.Getenv("LOG_LEVEL"))
+		logLevel, err := zerolog.ParseLevel(os.Getenv("LOG_LEVEL"))
 		if err != nil {
-			logLevel = int(zerolog.TraceLevel) // default to TRACE
+			logLevel = zerolog.TraceLevel // default to TRACE
+			if gin.Mode() == gin.ReleaseMode {
+				logLevel = zerolog.WarnLevel
+			}
 		}
-
 		var output io.Writer = zerolog.ConsoleWriter{
 			Out:        os.Stdout,
 			TimeFormat: time.RFC3339,

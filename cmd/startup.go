@@ -26,11 +26,11 @@ func Build(config *internal.Settings) (*http.Server, error) {
 		logger.Fatal().Err(err).Msg("failed to connect database")
 		return nil, err
 	}
-	return Run(config.Address(), db, &emailClient)
+	return Run(config.Address(), db, &emailClient, config.Application.BaseURL)
 }
 
-func Run(address string, db *gorm.DB, emailClient *internal.EmailClient) (*http.Server, error) {
-	r := routes.SetupRouter(db, emailClient)
+func Run(address string, db *gorm.DB, emailClient *internal.EmailClient, baseURL string) (*http.Server, error) {
+	r := routes.SetupRouter(db, emailClient, baseURL)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create listener")

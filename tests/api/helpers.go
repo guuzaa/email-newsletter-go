@@ -2,7 +2,11 @@ package api
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,8 +45,9 @@ func SpawnApp() TestApp {
 			Password:     "password",
 		},
 		Application: internal.ApplicationSettings{
-			Host: "127.0.0.1",
-			Port: 0,
+			Host:    "127.0.0.1",
+			Port:    0,
+			BaseURL: "http://127.0.0.1",
 		},
 		EmailClient: internal.EmailClientSettings{
 			BaseURL:             "http://localhost:8081",
@@ -77,10 +82,36 @@ func SpawnApp() TestApp {
 		panic(result.Error)
 	}
 	app.DBPool, _ = database.SetupDB(&settings)
-	srv, err := cmd.Run(settings.Address(), app.DBPool, &emailClient)
+	srv, err := cmd.Run(settings.Address(), app.DBPool, &emailClient, settings.Application.BaseURL)
 	if err != nil {
 		panic(err)
 	}
 	app.Address = fmt.Sprintf("http://%s", srv.Addr)
+
+	u, err := url.Parse(app.Address)
+	if err != nil {
+		panic(err)
+	}
+	port, err := strconv.ParseUint(u.Port(), 10, 16)
+	if err != nil {
+		panic(err)
+	}
+	app.Port = uint16(port)
 	return app
+}
+
+func ExtractURLs(text string) []string {
+	urlPattern := `(https?://[^\s<>"]+)`
+	re := regexp.MustCompile(urlPattern)
+	return re.FindAllString(text, -1)
+}
+
+func SetURLPort(rawURL string, port uint16) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	newHost := net.JoinHostPort(u.Host, strconv.Itoa(int(port)))
+	u.Host = newHost
+	return u.String(), nil
 }

@@ -18,8 +18,9 @@ type Settings struct {
 }
 
 type ApplicationSettings struct {
-	Port uint16 `yaml:"port" env:"APP_PORT"`
-	Host string `yaml:"host" env:"APP_HOST"`
+	Port    uint16 `yaml:"port" env:"APP_PORT"`
+	Host    string `yaml:"host" env:"APP_HOST"`
+	BaseURL string `yaml:"base_url" env:"APP_BASE_URL"`
 }
 
 type EmailClientSettings struct {
@@ -94,6 +95,9 @@ func mergeSettings(base, overlay Settings) Settings {
 	}
 	if overlay.Application.Host != "" {
 		result.Application.Host = overlay.Application.Host
+	}
+	if overlay.Application.BaseURL != "" {
+		result.Application.BaseURL = overlay.Application.BaseURL
 	}
 
 	if overlay.EmailClient.BaseURL != "" {
