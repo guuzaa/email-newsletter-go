@@ -25,7 +25,7 @@ func NewSubscriptionHandler(db *gorm.DB, emailClient *internal.EmailClient, base
 	return &SubscriptionHandler{db: db, emailClient: emailClient, baseURL: baseURL}
 }
 
-func (h *SubscriptionHandler) insertSubscriber(c *gin.Context, subscriber domain.NewSubscriber) (string, error) {
+func (h *SubscriptionHandler) insertSubscriber(c *gin.Context, tx *gorm.DB, subscriber domain.NewSubscriber) (string, error) {
 	log := middleware.GetContextLogger(c)
 	log.Trace().Msg("inserting subscription")
 	subscriberID := uuid.NewString()
@@ -36,7 +36,7 @@ func (h *SubscriptionHandler) insertSubscriber(c *gin.Context, subscriber domain
 		Status: "pending_confirmation",
 	}
 
-	if err := h.db.Create(&subscription).Error; err != nil {
+	if err := tx.Create(&subscription).Error; err != nil {
 		log.Warn().Err(err).Msg("failed to create subscription in database")
 		return "", err
 	}
@@ -79,20 +79,28 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	subscriberID, err := h.insertSubscriber(c, newSubscriber)
+	tx := h.db.Begin()
+	subscriberID, err := h.insertSubscriber(c, tx, newSubscriber)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to insert subscription")
+		tx.Rollback()
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 	subscriptionToken := generateSubscriptionToken()
-	if err = h.storeToken(subscriberID, subscriptionToken); err != nil {
+	if err = h.storeToken(tx, subscriberID, subscriptionToken); err != nil {
 		log.Warn().Err(err).Msg("failed to store subscription")
+		tx.Rollback()
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 	if err = h.sendConfirmationEmail(newSubscriber, subscriptionToken); err != nil {
 		log.Warn().Err(err).Msg("failed to send confirmation email")
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err = tx.Commit().Error; err != nil {
+		log.Warn().Err(err).Msg("failed to commit transaction")
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -110,12 +118,12 @@ func (h *SubscriptionHandler) sendConfirmationEmail(newSubscriber domain.NewSubs
 	return h.emailClient.SendEmail(newSubscriber.Email, subject, htmlContent, textContent)
 }
 
-func (h *SubscriptionHandler) storeToken(subscriberID string, subscriptionToken string) error {
+func (h *SubscriptionHandler) storeToken(tx *gorm.DB, subscriberID string, subscriptionToken string) error {
 	token := models.SubscriptionTokens{
 		SubscriptionID:    subscriberID,
 		SubscriptionToken: subscriptionToken,
 	}
-	result := h.db.Create(token)
+	result := tx.Create(token)
 	return result.Error
 }
 
