@@ -1,6 +1,6 @@
 BINARY=email-newsletter
 
-.PHONY: fmt init_db run test build clean tidy
+.PHONY: fmt init_db run test test-race build clean tidy
 
 all: test
 
@@ -15,6 +15,9 @@ run: fmt
 
 test: fmt
 	go test ./... -- -shuffle
+
+test-race: fmt
+	go test -race ./...
 
 build: fmt
 	go build -o target/$(BINARY) .

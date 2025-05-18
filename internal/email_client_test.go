@@ -86,7 +86,7 @@ func TestSendEmailSendsTheExpectedRequest(t *testing.T) {
 	content := content()
 	err := emailClient.SendEmail(subscriberEmail, subject(), content, content)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), reqCnt)
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&reqCnt))
 }
 
 func TestSendEmailFailsIfTheServerReturns500(t *testing.T) {
@@ -103,7 +103,7 @@ func TestSendEmailFailsIfTheServerReturns500(t *testing.T) {
 	content := content()
 	err := emailClient.SendEmail(subscriberEmail, subject, content, content)
 	assert.NotNil(t, err)
-	assert.Equal(t, uint32(1), reqCnt)
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&reqCnt))
 }
 
 func TestSendEmailTimesoutIfTheServerTakesTooLong(t *testing.T) {
@@ -122,5 +122,5 @@ func TestSendEmailTimesoutIfTheServerTakesTooLong(t *testing.T) {
 	content := content()
 	err := emailClient.SendEmail(subscriberEmail, subject, content, content)
 	assert.NotNil(t, err)
-	assert.Equal(t, uint32(1), reqCnt)
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&reqCnt))
 }
