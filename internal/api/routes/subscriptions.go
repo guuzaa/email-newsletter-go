@@ -80,7 +80,7 @@ func (h *SubscriptionHandler) hasPendingSubscriber(subscriber domain.NewSubscrib
 
 func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 	log := middleware.GetContextLogger(c)
-	h.db.WithContext(c.Request.Context())
+	h.db = h.db.WithContext(c.Request.Context())
 
 	newSubscriber, err := h.parseSubscription(c)
 	if err != nil {

@@ -40,7 +40,7 @@ type ConfirmedSubscriber struct {
 
 func (h *NewslettersHandler) publishNewsletter(c *gin.Context) {
 	log := middleware.GetContextLogger(c)
-	h.db.WithContext(c.Request.Context())
+	h.db = h.db.WithContext(c.Request.Context())
 
 	var body BodyData
 	if err := c.ShouldBindJSON(&body); err != nil {
