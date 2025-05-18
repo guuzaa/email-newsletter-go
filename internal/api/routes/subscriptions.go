@@ -35,7 +35,6 @@ func (h *SubscriptionHandler) insertSubscriber(c *gin.Context, tx *gorm.DB, subs
 	}
 
 	if err := tx.Create(&subscription).Error; err != nil {
-		log.Warn().Err(err).Msg("failed to create subscription in database")
 		return "", err
 	}
 	log.Trace().Str("name", subscription.Name).Str("email", subscription.Email).Msg("added new subscriber")
@@ -84,13 +83,14 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 	newSubscriber, err := h.parseSubscription(c)
 	if err != nil {
 		log.Trace().Err(err).Msg("failed to parse subscription")
-		c.String(http.StatusBadRequest, err.Error())
+		c.String(http.StatusBadRequest, "Invalid subscription")
 		return
 	}
 
 	if h.hasPendingSubscriber(newSubscriber) {
 		log.Trace().Msg("subscribe twice")
-		c.String(http.StatusOK, "")
+		c.String(http.StatusOK, "You've subscribed already!")
+		return
 	}
 
 	tx := h.db.Begin()
@@ -98,24 +98,24 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to insert subscription")
 		tx.Rollback()
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, "Failed to store subscription")
 		return
 	}
 	subscriptionToken := domain.NewSubscriptionToken()
 	if err = h.storeToken(tx, subscriberID, subscriptionToken); err != nil {
 		log.Warn().Err(err).Msg("failed to store subscription")
 		tx.Rollback()
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, "Failed to store subscription token")
 		return
 	}
 	if err = h.sendConfirmationEmail(newSubscriber, subscriptionToken); err != nil {
 		log.Warn().Err(err).Msg("failed to send confirmation email")
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, "Failed to send confirmation email")
 		return
 	}
 	if err = tx.Commit().Error; err != nil {
 		log.Warn().Err(err).Msg("failed to commit transaction")
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, "Internal server error from database")
 		return
 	}
 

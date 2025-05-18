@@ -29,7 +29,7 @@ func (h *ConfirmSubscriptionHandler) confirm(c *gin.Context) {
 
 	if !domain.ValidSubscriberToken(subscriptionToken) {
 		log.Debug().Msg("invalid subscriber token")
-		c.String(http.StatusBadRequest, "Missing subscription token")
+		c.String(http.StatusBadRequest, "Invalid subscription token")
 		return
 	}
 

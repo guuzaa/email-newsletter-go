@@ -162,3 +162,27 @@ func TestSubscribeReturnsA200WhenFieldsArePresentButEmpty(t *testing.T) {
 		assert.Equal(t, tc.expected, resp.StatusCode)
 	}
 }
+
+func TestSubscribeFailsIfThereIsAFatalDatabaseSubscriptionTokensDontExistError(t *testing.T) {
+	const body = "name=le%20guin&email=ursula_le_guin%40gmail.com"
+	app := SpawnApp()
+	d := app.DBPool.Exec("ALTER TABLE subscription_tokens DROP COLUMN subscription_token;")
+	require.Nil(t, d.Error)
+
+	resp, err := app.PostSubscriptions(body)
+	assert.Nil(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+}
+
+func TestSubscribeFailsIfThereIsAFatalDatabaseSubscriptionsEmailDontExistError(t *testing.T) {
+	const body = "name=le%20guin&email=ursula_le_guin%40gmail.com"
+	app := SpawnApp()
+	d := app.DBPool.Exec("ALTER TABLE subscriptions DROP COLUMN email;")
+	require.Nil(t, d.Error)
+
+	resp, err := app.PostSubscriptions(body)
+	assert.Nil(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+}
