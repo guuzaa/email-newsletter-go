@@ -17,7 +17,7 @@ func SetupDB(settings *internal.Settings) (*gorm.DB, error) {
 		PreferSimpleProtocol: true,                      // disables implicit prepared statement usage. By default pgx automatically uses the extended protocol
 	}), &gorm.Config{
 		Logger: &zerologgorm.GormLogger{
-			FieldsExclude: []string{zerologgorm.DurationFieldName, zerologgorm.FileFieldName},
+			FieldsExclude: []string{zerologgorm.FileFieldName},
 		},
 	})
 	db = db.WithContext(internal.Logger().WithContext(context.Background()))

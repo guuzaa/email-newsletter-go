@@ -10,8 +10,8 @@ import (
 func SetupRouter(db *gorm.DB, emailClient *internal.EmailClient, baseURL string) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.Use(middleware.UseLogger())
 	r.Use(middleware.RequestID())
+	r.Use(middleware.UseLogger())
 
 	r.GET("/health_check", healthCheck)
 	confirmSubscriptionHandler := NewConfirmSubscriptionHandler(db)
