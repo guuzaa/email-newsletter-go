@@ -20,5 +20,8 @@ func SetupRouter(db *gorm.DB, emailClient *internal.EmailClient, baseURL string)
 	subscriptionHandler := NewSubscriptionHandler(db, emailClient, baseURL)
 	r.POST("/subscriptions", subscriptionHandler.subscribe)
 
+	newslettersHandler := NewNewslettersHandler(db, emailClient)
+	r.POST("/newsletters", newslettersHandler.publishNewsletter)
+
 	return r
 }

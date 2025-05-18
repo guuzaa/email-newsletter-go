@@ -101,6 +101,7 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "Failed to store subscription")
 		return
 	}
+
 	subscriptionToken := domain.NewSubscriptionToken()
 	if err = h.storeToken(tx, subscriberID, subscriptionToken); err != nil {
 		log.Warn().Err(err).Msg("failed to store subscription")
@@ -108,16 +109,22 @@ func (h *SubscriptionHandler) subscribe(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "Failed to store subscription token")
 		return
 	}
+	log.Debug().Msgf("subscription token stored for subscriber ID %s, token %s", subscriberID, subscriptionToken)
+
+	if err = tx.Commit().Error; err != nil {
+		log.Warn().Err(err).Msg("failed to commit transaction")
+		tx.Rollback()
+		c.String(http.StatusInternalServerError, "Internal server error from database")
+		return
+	}
+	log.Debug().Msgf("subscription created, ID %s, token %s", subscriberID, subscriptionToken)
+
 	if err = h.sendConfirmationEmail(newSubscriber, subscriptionToken); err != nil {
 		log.Warn().Err(err).Msg("failed to send confirmation email")
 		c.String(http.StatusInternalServerError, "Failed to send confirmation email")
 		return
 	}
-	if err = tx.Commit().Error; err != nil {
-		log.Warn().Err(err).Msg("failed to commit transaction")
-		c.String(http.StatusInternalServerError, "Internal server error from database")
-		return
-	}
+	log.Debug().Msgf("confirmation email sent to subscriber ID %s, token %s", subscriberID, subscriptionToken)
 
 	c.String(http.StatusOK, "")
 }
