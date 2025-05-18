@@ -51,6 +51,7 @@ func (h *ConfirmSubscriptionHandler) confirm(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "Failed to confirm subscription")
 		return
 	}
+	log.Trace().Str("subscription ID", subscriptionID).Str("subscription token", subscriptionToken).Msg("subscription confirmed")
 
 	c.String(http.StatusOK, "")
 }

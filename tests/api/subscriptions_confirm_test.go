@@ -30,6 +30,21 @@ func TestConfirmationsWithoutTokenAreRejectedWithA400(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
+func TestConfirmationsWithInvalidTokenAreRejectedWithA400(t *testing.T) {
+	client := http.Client{
+		Timeout: 1 * time.Second,
+	}
+	app := SpawnApp()
+	url := fmt.Sprintf("%s/subscriptions/confirm?subscription_token=invalid?@<", app.Address)
+	req, err := http.NewRequest("GET", url, nil)
+	assert.Nil(t, err)
+	req.Header.Set("Content-Type", "plain/text")
+	resp, err := client.Do(req)
+	assert.Nil(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
 func TestTheLinkReturnedBySubscribeReturnsA200IfCalled(t *testing.T) {
 	const body = "name=le%20guin&email=ursula_le_guin%40gmail.com"
 	app := SpawnApp()

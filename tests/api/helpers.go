@@ -35,6 +35,16 @@ func (app *TestApp) PostSubscriptions(body string) (*http.Response, error) {
 	return client.Do(req)
 }
 
+func (app *TestApp) PostNewsletters(body string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/newsletters", app.Address)
+	client := http.Client{
+		Timeout: 1 * time.Second,
+	}
+	req, _ := http.NewRequest("POST", url, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	return client.Do(req)
+}
+
 func SpawnApp() TestApp {
 	settings := internal.Settings{
 		Database: internal.DatabaseSettings{
