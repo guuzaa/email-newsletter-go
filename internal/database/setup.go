@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	zerologgorm "github.com/go-mods/zerolog-gorm"
 	"github.com/guuzaa/email-newsletter/internal"
 	"github.com/guuzaa/email-newsletter/internal/database/models"
 	"gorm.io/driver/postgres"
@@ -16,8 +15,8 @@ func SetupDB(settings *internal.Settings) (*gorm.DB, error) {
 		DSN:                  settings.PostgresSQLDSN(), // data source name, refer https://github.com/jackc/pgx
 		PreferSimpleProtocol: true,                      // disables implicit prepared statement usage. By default pgx automatically uses the extended protocol
 	}), &gorm.Config{
-		Logger: &zerologgorm.GormLogger{
-			FieldsExclude: []string{zerologgorm.DurationFieldName, zerologgorm.FileFieldName},
+		Logger: &internal.GormLogger{
+			FieldsExclude: []string{internal.FileFieldName},
 		},
 	})
 	db = db.WithContext(internal.Logger().WithContext(context.Background()))

@@ -13,11 +13,7 @@ func UseLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger := internal.Logger()
 		t := time.Now()
-		c.Next()
-		requestID := c.Value("requestID")
-		if requestID == nil {
-			requestID = "unknown"
-		}
+		requestID := internal.GetRequestID(c.Request.Context())
 		logger.Trace().
 			Str("method", c.Request.Method).
 			Str("path", c.Request.URL.Path).
@@ -25,15 +21,14 @@ func UseLogger() gin.HandlerFunc {
 			Str("userAgent", c.Request.UserAgent()).
 			Str("latency", time.Since(t).String()).
 			Str("statusCode", strconv.Itoa(c.Writer.Status())).
-			Msgf("ID= %s", requestID)
+			Str("ID", requestID)
+		c.Next()
 	}
 }
 
 // GetContextLogger returns a logger with request ID from context
 func GetContextLogger(c *gin.Context) zerolog.Logger {
 	logger := internal.Logger()
-	if requestID, exists := c.Get("requestID"); exists {
-		logger = logger.With().Interface("ID", requestID).Logger()
-	}
-	return logger
+	requestID := internal.GetRequestID(c.Request.Context())
+	return logger.With().Interface("ID", requestID).Logger()
 }

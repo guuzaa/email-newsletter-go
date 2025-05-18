@@ -20,6 +20,8 @@ func NewConfirmSubscriptionHandler(db *gorm.DB) *ConfirmSubscriptionHandler {
 
 func (h *ConfirmSubscriptionHandler) confirm(c *gin.Context) {
 	log := middleware.GetContextLogger(c)
+	h.db = h.db.WithContext(c.Request.Context())
+
 	subscriptionToken, ok := c.GetQuery("subscription_token")
 	if !ok {
 		log.Debug().Msg("missing subscription token")
