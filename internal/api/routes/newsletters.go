@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/guuzaa/email-newsletter/internal"
+	"github.com/guuzaa/email-newsletter/internal/api/middleware"
 	"github.com/guuzaa/email-newsletter/internal/database/models"
 	"github.com/guuzaa/email-newsletter/internal/domain"
-	"github.com/guuzaa/email-newsletter/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

@@ -77,7 +77,7 @@ func GetRequestID(ctx context.Context) string {
 	return "unknown"
 }
 
-// Adopted from github.com/go-mods/zerolog-gorm, licenced under MIT License
+// Adopted from https://github.com/go-mods/zerolog-gorm, licenced under MIT License
 type GormLogger struct {
 	// SlowThreshold is the delay which define the query as slow
 	SlowThreshold time.Duration
