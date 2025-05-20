@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -120,4 +121,22 @@ func TestNewslettersReturns400ForInvalidData(t *testing.T) {
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode, tc.err)
 	}
+}
+
+func TestRequestsMissingAuthorizationAreRejected(t *testing.T) {
+	app := SpawnApp()
+
+	url := fmt.Sprintf("%s/newsletters", app.Address)
+	client := http.Client{
+		Timeout: 1 * time.Second,
+	}
+	req, _ := http.NewRequest("POST", url, strings.NewReader(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	assert.Nil(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	authHeader := resp.Header.Get("WWW-Authenticate")
+	assert.Equal(t, `Basic realm="publish"`, authHeader)
 }

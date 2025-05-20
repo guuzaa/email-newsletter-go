@@ -42,6 +42,7 @@ func (app *TestApp) PostNewsletters(body string) (*http.Response, error) {
 	}
 	req, _ := http.NewRequest("POST", url, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(uuid.NewString(), uuid.NewString())
 	return client.Do(req)
 }
 
