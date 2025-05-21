@@ -19,10 +19,12 @@ func SetupDB(settings *internal.Settings) (*gorm.DB, error) {
 			FieldsExclude: []string{internal.FileFieldName},
 		},
 	})
+	if err != nil {
+		return nil, err
+	}
 	db = db.WithContext(internal.Logger().WithContext(context.Background()))
 
-	db.AutoMigrate(&models.Subscription{})
-	db.AutoMigrate(&models.SubscriptionTokens{})
+	db.AutoMigrate(&models.Subscription{}, &models.SubscriptionTokens{}, &models.User{})
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, err

@@ -14,7 +14,7 @@ run: fmt
 	LOG_LEVEL=trace go run .
 
 test: fmt
-	go test ./... -- -shuffle
+	GIN_MODE=release go test ./... -- -shuffle
 
 test-race: fmt
 	go test -race ./...

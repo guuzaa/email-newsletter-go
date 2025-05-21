@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"crypto/sha3"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/guuzaa/email-newsletter/internal"
@@ -43,6 +45,19 @@ type ConfirmedSubscriber struct {
 	Email domain.SubscriberEmail `gorm:"email"`
 }
 
+func (c *Credentials) IsValid(db *gorm.DB) bool {
+	var count int64
+	passwordHash := fmt.Sprintf("%x", sha3.Sum256([]byte(c.Password)))
+	user := models.User{
+		Username: c.Username,
+		Password: passwordHash,
+	}
+	if err := db.Model(&models.User{}).Where(&user).Count(&count).Error; err != nil {
+		return false
+	}
+	return count == 1
+}
+
 func (h *NewslettersHandler) basicAuthentication(c *gin.Context) (Credentials, error) {
 	username, password, ok := c.Request.BasicAuth()
 	if !ok {
@@ -58,10 +73,16 @@ func (h *NewslettersHandler) publishNewsletter(c *gin.Context) {
 	log := middleware.GetContextLogger(c)
 	h.db = h.db.WithContext(c.Request.Context())
 
-	_, err := h.basicAuthentication(c)
+	credentials, err := h.basicAuthentication(c)
 	if err != nil {
-		log.Debug().Err(err).Msg("failed to decode basic auth")
+		log.Trace().Err(err).Msg("failed to decode basic auth")
 		c.Header("WWW-Authenticate", `Basic realm="publish"`)
+		c.String(http.StatusUnauthorized, "Invalid credentials")
+		return
+	}
+
+	if !credentials.IsValid(h.db) {
+		log.Trace().Str("username", credentials.Username).Msg("invalid credentials")
 		c.String(http.StatusUnauthorized, "Invalid credentials")
 		return
 	}

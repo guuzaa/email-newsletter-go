@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/sha3"
 	"fmt"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/guuzaa/email-newsletter/cmd"
 	"github.com/guuzaa/email-newsletter/internal"
 	"github.com/guuzaa/email-newsletter/internal/database"
+	"github.com/guuzaa/email-newsletter/internal/database/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -23,6 +25,7 @@ type TestApp struct {
 	Port        uint16
 	DBPool      *gorm.DB
 	EmailClient *internal.EmailClient
+	testUser    *TestUser
 }
 
 func (app *TestApp) PostSubscriptions(body string) (*http.Response, error) {
@@ -42,7 +45,7 @@ func (app *TestApp) PostNewsletters(body string) (*http.Response, error) {
 	}
 	req, _ := http.NewRequest("POST", url, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(uuid.NewString(), uuid.NewString())
+	req.SetBasicAuth(app.testUser.Username, app.testUser.Password)
 	return client.Do(req)
 }
 
@@ -78,6 +81,7 @@ func SpawnApp() TestApp {
 		Port:        settings.Application.Port,
 		DBPool:      nil,
 		EmailClient: &emailClient,
+		testUser:    GenerateTestUser(),
 	}
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  settings.PostgresSQLDSN(), // data source name, refer https://github.com/jackc/pgx
@@ -98,6 +102,9 @@ func SpawnApp() TestApp {
 		panic(err)
 	}
 	app.Address = fmt.Sprintf("http://%s", srv.Addr)
+	if err = app.testUser.Store(app.DBPool); err != nil {
+		panic(err)
+	}
 
 	u, err := url.Parse(app.Address)
 	if err != nil {
@@ -125,4 +132,31 @@ func SetURLPort(rawURL string, port uint16) (string, error) {
 	newHost := net.JoinHostPort(u.Host, strconv.Itoa(int(port)))
 	u.Host = newHost
 	return u.String(), nil
+}
+
+type TestUser struct {
+	UserID   string
+	Username string
+	Password string
+}
+
+func GenerateTestUser() *TestUser {
+	return &TestUser{
+		UserID:   uuid.NewString(),
+		Username: uuid.NewString(),
+		Password: uuid.NewString(),
+	}
+}
+
+func (user *TestUser) Store(db *gorm.DB) error {
+	passwordHash := fmt.Sprintf("%x", sha3.Sum256([]byte(user.Password)))
+	userModel := &models.User{
+		ID:       user.UserID,
+		Username: user.Username,
+		Password: passwordHash,
+	}
+	if err := db.Create(userModel).Error; err != nil {
+		return err
+	}
+	return nil
 }
