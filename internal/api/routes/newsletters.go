@@ -1,9 +1,7 @@
 package routes
 
 import (
-	"crypto/sha3"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/guuzaa/email-newsletter/internal"
@@ -36,6 +34,7 @@ type Content struct {
 	Html string `json:"html" binding:"required"`
 	Text string `json:"text" binding:"required"`
 }
+
 type Credentials struct {
 	Username string
 	Password string
@@ -45,17 +44,21 @@ type ConfirmedSubscriber struct {
 	Email domain.SubscriberEmail `gorm:"email"`
 }
 
-func (c *Credentials) IsValid(db *gorm.DB) bool {
-	var count int64
-	passwordHash := fmt.Sprintf("%x", sha3.Sum256([]byte(c.Password)))
-	user := models.User{
-		Username: c.Username,
-		Password: passwordHash,
+func (cred *Credentials) validate(c *gin.Context, db *gorm.DB) bool {
+	log := middleware.GetContextLogger(c)
+	var user = models.User{
+		Password: `$argon2id$v=19$m=15000,t=2,p=1$gZiV/M1gPc22ElAH/Jh1Hw$CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno`,
 	}
-	if err := db.Model(&models.User{}).Where(&user).Count(&count).Error; err != nil {
+	if err := db.Where("username = ?", cred.Username).First(&user).Error; err != nil {
+		log.Trace().Err(err).Str("username", cred.Username).Msg("failed to find user")
+	}
+
+	valid, err := domain.VerifyPassword(cred.Password, user.Password)
+	if err != nil {
+		log.Trace().Err(err).Msg("failed to verify password")
 		return false
 	}
-	return count == 1
+	return valid
 }
 
 func (h *NewslettersHandler) basicAuthentication(c *gin.Context) (Credentials, error) {
@@ -77,12 +80,13 @@ func (h *NewslettersHandler) publishNewsletter(c *gin.Context) {
 	if err != nil {
 		log.Trace().Err(err).Msg("failed to decode basic auth")
 		c.Header("WWW-Authenticate", `Basic realm="publish"`)
-		c.String(http.StatusUnauthorized, "Invalid credentials")
+		c.String(http.StatusUnauthorized, "Missing credentials")
 		return
 	}
 
-	if !credentials.IsValid(h.db) {
+	if !credentials.validate(c, h.db) {
 		log.Trace().Str("username", credentials.Username).Msg("invalid credentials")
+		c.Header("WWW-Authenticate", `Basic realm="publish"`)
 		c.String(http.StatusUnauthorized, "Invalid credentials")
 		return
 	}

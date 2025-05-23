@@ -1,7 +1,6 @@
 package api
 
 import (
-	"crypto/sha3"
 	"fmt"
 	"net"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 	"github.com/guuzaa/email-newsletter/internal"
 	"github.com/guuzaa/email-newsletter/internal/database"
 	"github.com/guuzaa/email-newsletter/internal/database/models"
+	"github.com/guuzaa/email-newsletter/internal/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -149,7 +149,11 @@ func GenerateTestUser() *TestUser {
 }
 
 func (user *TestUser) Store(db *gorm.DB) error {
-	passwordHash := fmt.Sprintf("%x", sha3.Sum256([]byte(user.Password)))
+	passwordHash, err := domain.HashPassword(user.Password)
+	if err != nil {
+		return err
+	}
+
 	userModel := &models.User{
 		ID:       user.UserID,
 		Username: user.Username,

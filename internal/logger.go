@@ -15,7 +15,6 @@ import (
 	"gorm.io/gorm/utils"
 
 	"github.com/gin-gonic/gin"
-	// "github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 )

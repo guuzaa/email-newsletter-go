@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/guuzaa/email-newsletter/internal"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
@@ -132,6 +133,48 @@ func TestRequestsMissingAuthorizationAreRejected(t *testing.T) {
 	}
 	req, _ := http.NewRequest("POST", url, strings.NewReader(requestBody))
 	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	assert.Nil(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	authHeader := resp.Header.Get("WWW-Authenticate")
+	assert.Equal(t, `Basic realm="publish"`, authHeader)
+}
+
+func TestNonExistingUserIsRejected(t *testing.T) {
+	app := SpawnApp()
+
+	username := uuid.NewString()
+	password := uuid.NewString()
+	url := fmt.Sprintf("%s/newsletters", app.Address)
+	client := http.Client{
+		Timeout: 1 * time.Second,
+	}
+	req, _ := http.NewRequest("POST", url, strings.NewReader(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(username, password)
+	resp, err := client.Do(req)
+	assert.Nil(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	authHeader := resp.Header.Get("WWW-Authenticate")
+	assert.Equal(t, `Basic realm="publish"`, authHeader)
+}
+
+func TestInvalidPasswordIsRejected(t *testing.T) {
+	app := SpawnApp()
+
+	username := app.testUser.Username
+	password := uuid.NewString()
+	url := fmt.Sprintf("%s/newsletters", app.Address)
+	client := http.Client{
+		Timeout: 1 * time.Second,
+	}
+	req, _ := http.NewRequest("POST", url, strings.NewReader(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(username, password)
 	resp, err := client.Do(req)
 	assert.Nil(t, err)
 	defer resp.Body.Close()
