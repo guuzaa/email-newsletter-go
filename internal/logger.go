@@ -15,7 +15,6 @@ import (
 	"gorm.io/gorm/utils"
 
 	"github.com/gin-gonic/gin"
-	// "github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 )
@@ -77,7 +76,7 @@ func GetRequestID(ctx context.Context) string {
 	return "unknown"
 }
 
-// Adopted from github.com/go-mods/zerolog-gorm, licenced under MIT License
+// Adopted from https://github.com/go-mods/zerolog-gorm, licensed under MIT License
 type GormLogger struct {
 	// SlowThreshold is the delay which define the query as slow
 	SlowThreshold time.Duration

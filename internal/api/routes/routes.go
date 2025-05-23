@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/guuzaa/email-newsletter/internal"
-	"github.com/guuzaa/email-newsletter/internal/middleware"
+	"github.com/guuzaa/email-newsletter/internal/api/middleware"
 	"gorm.io/gorm"
 )
 

@@ -1,12 +1,13 @@
 package routes
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/guuzaa/email-newsletter/internal"
+	"github.com/guuzaa/email-newsletter/internal/api/middleware"
 	"github.com/guuzaa/email-newsletter/internal/database/models"
 	"github.com/guuzaa/email-newsletter/internal/domain"
-	"github.com/guuzaa/email-newsletter/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -34,13 +35,61 @@ type Content struct {
 	Text string `json:"text" binding:"required"`
 }
 
+type Credentials struct {
+	Username string
+	Password string
+}
+
 type ConfirmedSubscriber struct {
 	Email domain.SubscriberEmail `gorm:"email"`
+}
+
+func (cred *Credentials) validate(c *gin.Context, db *gorm.DB) bool {
+	log := middleware.GetContextLogger(c)
+	var user = models.User{
+		Password: `$argon2id$v=19$m=15000,t=2,p=1$gZiV/M1gPc22ElAH/Jh1Hw$CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno`,
+	}
+	if err := db.Where("username = ?", cred.Username).First(&user).Error; err != nil {
+		log.Trace().Err(err).Str("username", cred.Username).Msg("failed to find user")
+	}
+
+	valid, err := domain.VerifyPassword(cred.Password, user.Password)
+	if err != nil {
+		log.Trace().Err(err).Msg("failed to verify password")
+		return false
+	}
+	return valid
+}
+
+func (h *NewslettersHandler) basicAuthentication(c *gin.Context) (Credentials, error) {
+	username, password, ok := c.Request.BasicAuth()
+	if !ok {
+		return Credentials{}, errors.New("missing authorization header")
+	}
+	return Credentials{
+		Username: username,
+		Password: password,
+	}, nil
 }
 
 func (h *NewslettersHandler) publishNewsletter(c *gin.Context) {
 	log := middleware.GetContextLogger(c)
 	h.db = h.db.WithContext(c.Request.Context())
+
+	credentials, err := h.basicAuthentication(c)
+	if err != nil {
+		log.Trace().Err(err).Msg("failed to decode basic auth")
+		c.Header("WWW-Authenticate", `Basic realm="publish"`)
+		c.String(http.StatusUnauthorized, "Missing credentials")
+		return
+	}
+
+	if !credentials.validate(c, h.db) {
+		log.Trace().Str("username", credentials.Username).Msg("invalid credentials")
+		c.Header("WWW-Authenticate", `Basic realm="publish"`)
+		c.String(http.StatusUnauthorized, "Invalid credentials")
+		return
+	}
 
 	var body BodyData
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -53,8 +102,10 @@ func (h *NewslettersHandler) publishNewsletter(c *gin.Context) {
 	for _, subscriber := range confirmedSubscribers {
 		if err := h.emailClient.SendEmail(subscriber.Email, body.Title, body.Content.Html, body.Content.Text); err != nil {
 			log.Warn().Err(err).Str("email", subscriber.Email.String()).Msg("failed to send email")
+			c.String(http.StatusInternalServerError, "Failed to send email")
+			return
 		}
-		log.Debug().Msgf("sending email to %s", subscriber.Email)
+		log.Trace().Msgf("sending email to %s", subscriber.Email)
 	}
 	c.String(http.StatusOK, "")
 }
