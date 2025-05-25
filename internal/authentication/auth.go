@@ -1,6 +1,12 @@
-package domain
+package authentication
 
 import (
+	"github.com/guuzaa/email-newsletter/internal/api/middleware"
+	"github.com/guuzaa/email-newsletter/internal/database/models"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
@@ -9,6 +15,28 @@ import (
 	"golang.org/x/crypto/argon2"
 	"strings"
 )
+
+type Credentials struct {
+	Username string
+	Password string
+}
+
+func (cred *Credentials) Validate(c *gin.Context, db *gorm.DB) bool {
+	log := middleware.GetContextLogger(c)
+	var user = models.User{
+		Password: `$argon2id$v=19$m=15000,t=2,p=1$gZiV/M1gPc22ElAH/Jh1Hw$CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno`,
+	}
+	if err := db.Where("username = ?", cred.Username).First(&user).Error; err != nil {
+		log.Trace().Err(err).Str("username", cred.Username).Msg("failed to find user")
+	}
+
+	valid, err := VerifyPassword(cred.Password, user.Password)
+	if err != nil {
+		log.Trace().Err(err).Msg("failed to verify password")
+		return false
+	}
+	return valid
+}
 
 // HashPassword creates an Argon2id hash in PHC format
 func HashPassword(password string) (string, error) {

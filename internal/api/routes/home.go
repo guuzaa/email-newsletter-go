@@ -5,10 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/guuzaa/email-newsletter/internal/api/middleware"
+	"github.com/guuzaa/email-newsletter/web"
 )
 
-func healthCheck(c *gin.Context) {
+func home(c *gin.Context) {
 	log := middleware.GetContextLogger(c)
-	log.Debug().Msg("health check")
-	c.Status(http.StatusOK)
+	log.Trace().Msg("home page")
+	c.Data(http.StatusOK, "text/html; charset=utf-8", web.HomeHTML)
 }
