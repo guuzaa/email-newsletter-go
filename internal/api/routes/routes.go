@@ -13,6 +13,12 @@ func SetupRouter(db *gorm.DB, emailClient *internal.EmailClient, baseURL string)
 	r.Use(middleware.RequestID())
 	r.Use(middleware.UseLogger())
 
+	r.GET("/", home)
+
+	loginHandler := NewLoginHandler(db)
+	r.GET("/login", loginHandler.get)
+	r.POST("/login", loginHandler.post)
+
 	r.GET("/health_check", healthCheck)
 	confirmSubscriptionHandler := NewConfirmSubscriptionHandler(db)
 	r.GET("/subscriptions/confirm", confirmSubscriptionHandler.confirm)

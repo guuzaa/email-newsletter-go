@@ -11,19 +11,20 @@ init_db:
 	./scripts/init_db.sh
 
 run: fmt
-	LOG_LEVEL=trace go run .
+	@LOG_LEVEL=trace go run .
 
 test: fmt
-	GIN_MODE=release go test ./... -- -shuffle
+	@GIN_MODE=release go test ./... -- -shuffle
 
 test-race: fmt
-	go test -race ./...
+	@go test -race ./...
 
 build: fmt
-	go build -o target/$(BINARY) .
+	@echo Build email-newsletter
+	go build -tags netgo -ldflags '-s -w' -o target/$(BINARY) .
 
 clean:
 	rm -rf target
 
 tidy:
-	go mod tidy
+	@go mod tidy

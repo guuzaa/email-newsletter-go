@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -13,9 +14,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/guuzaa/email-newsletter/cmd"
 	"github.com/guuzaa/email-newsletter/internal"
+	"github.com/guuzaa/email-newsletter/internal/authentication"
 	"github.com/guuzaa/email-newsletter/internal/database"
 	"github.com/guuzaa/email-newsletter/internal/database/models"
-	"github.com/guuzaa/email-newsletter/internal/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -26,27 +27,35 @@ type TestApp struct {
 	DBPool      *gorm.DB
 	EmailClient *internal.EmailClient
 	testUser    *TestUser
+	apiClient   *http.Client
 }
 
 func (app *TestApp) PostSubscriptions(body string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/subscriptions", app.Address)
-	client := http.Client{
-		Timeout: 1 * time.Second,
-	}
-	req, _ := http.NewRequest("POST", url, strings.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, url, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	return client.Do(req)
+	return app.apiClient.Do(req)
 }
 
 func (app *TestApp) PostNewsletters(body string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/newsletters", app.Address)
-	client := http.Client{
-		Timeout: 1 * time.Second,
-	}
-	req, _ := http.NewRequest("POST", url, strings.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, url, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.SetBasicAuth(app.testUser.Username, app.testUser.Password)
-	return client.Do(req)
+	return app.apiClient.Do(req)
+}
+
+func (app *TestApp) PostLogin(body string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/login", app.Address)
+	req, _ := http.NewRequest(http.MethodPost, url, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	return app.apiClient.Do(req)
+}
+
+func (app *TestApp) GetLoginPage() (*http.Response, error) {
+	url := fmt.Sprintf("%s/login", app.Address)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	return app.apiClient.Do(req)
 }
 
 func SpawnApp() TestApp {
@@ -76,12 +85,24 @@ func SpawnApp() TestApp {
 		panic(err)
 	}
 	emailClient := internal.NewEmailClient(settings.EmailClient.BaseURL, senderEmail, settings.EmailClient.AuthorizationToken, settings.EmailClient.Timeout())
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		panic(err)
+	}
 	app := TestApp{
 		Address:     fmt.Sprintf("http://%s", settings.Address()),
 		Port:        settings.Application.Port,
 		DBPool:      nil,
 		EmailClient: &emailClient,
 		testUser:    GenerateTestUser(),
+		apiClient: &http.Client{
+			Timeout: 1 * time.Second,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				// Prevent automatic redirects to handle them manually
+				return http.ErrUseLastResponse
+			},
+			Jar: jar,
+		},
 	}
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  settings.PostgresSQLDSN(), // data source name, refer https://github.com/jackc/pgx
@@ -149,7 +170,7 @@ func GenerateTestUser() *TestUser {
 }
 
 func (user *TestUser) Store(db *gorm.DB) error {
-	passwordHash, err := domain.HashPassword(user.Password)
+	passwordHash, err := authentication.HashPassword(user.Password)
 	if err != nil {
 		return err
 	}
