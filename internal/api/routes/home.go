@@ -8,6 +8,7 @@ import (
 	"github.com/guuzaa/email-newsletter/web"
 )
 
+// Deprecated: use vue3 frontend instead
 func home(c *gin.Context) {
 	log := middleware.GetContextLogger(c)
 	log.Trace().Msg("home page")

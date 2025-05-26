@@ -28,6 +28,7 @@ type FormData struct {
 	Password string `form:"password" binding:"required"`
 }
 
+// Deprecated: use vue3 frontend instead
 func (h *LoginHandler) get(c *gin.Context) {
 	log := middleware.GetContextLogger(c)
 	log.Trace().Msg("login page")

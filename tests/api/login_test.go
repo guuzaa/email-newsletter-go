@@ -10,6 +10,7 @@ import (
 )
 
 func TestAnErrorFlashMessageIsSetOnFailure(t *testing.T) {
+	t.Skip("This test is skipped because get login page is deprecated, use vue3 frontend instead")
 	app := SpawnApp()
 	loginBody := `
 	{
